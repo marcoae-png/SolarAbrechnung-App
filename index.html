@@ -255,7 +255,7 @@ tfoot th{color:#24715e}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAB4BQAfRwYArWTSj8uErj5dLnMoq85qyg",
@@ -539,6 +539,42 @@ $("saveCustomerBtn").onclick=async()=>{
   } catch(e) {$("customerError").textContent=e.message;}
 };
 document.addEventListener("click",async e=>{
+  const pay=e.target.closest("[data-payment-toggle]");
+  if(pay){
+    const x=invoices.find(i=>i.id===pay.dataset.paymentToggle); if(!x) return;
+    const paid=invoicePaymentState(x)==="paid";
+    const question=paid
+      ? "Zahlungsstatus dieser Rechnung wieder auf «offen» setzen?"
+      : "Rechnung "+x.invoiceNo+" als bezahlt markieren?";
+    if(!confirm(question)) return;
+    try{
+      await updateDoc(doc(db,"invoices",x.id),paid
+        ? {paymentStatus:"open",paidAt:null}
+        : {paymentStatus:"paid",paidAt:serverTimestamp()});
+      await loadAll();
+    }catch(err){alert("Zahlungsstatus konnte nicht gespeichert werden: "+err.message);}
+    return;
+  }
+  const reminder=e.target.closest("[data-remind-invoice]");
+  if(reminder){
+    const x=invoices.find(i=>i.id===reminder.dataset.remindInvoice); if(!x) return;
+    const d=x.data||{}, customer=d.customer||{};
+    const recipient=(customer.email||"").trim();
+    if(!recipient){alert("Für diesen Bezüger ist keine E-Mail-Adresse hinterlegt.");return;}
+    const due=invoiceDueDate(x);
+    const subject=`Zahlungserinnerung – Rechnung ${x.invoiceNo}`;
+    const body=[
+      `Guten Tag ${customer.name||x.customerName||""},`,"",
+      "Unsere Rechnung ist gemäss unseren Unterlagen noch offen.",
+      `Rechnungsnummer: ${x.invoiceNo}`,
+      `Betrag: ${chf(x.total)}`,
+      `Zahlbar bis: ${due?due.toLocaleDateString("de-CH"):"siehe Rechnung"}`,"",
+      "Falls Sie die Zahlung bereits veranlasst haben, betrachten Sie diese Nachricht bitte als gegenstandslos.",
+      "Vielen Dank und freundliche Grüsse"
+    ].join("\r\n");
+    window.location.href=`mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return;
+  }
   const dp=e.target.closest("[data-del-property]");
   if(dp) {
     if(!confirm("Liegenschaft wirklich löschen? Zugehörige Bezüger und Importe werden nicht automatisch gelöscht.")) return;
@@ -865,14 +901,37 @@ $("closeViewerBtn").onclick=()=>$("invoiceViewer").classList.add("hidden");
 $("printInvoicesBtn").onclick=()=>{const f=$("invoiceFrame").contentWindow;f.focus();f.print();};
 
 /* ---- Rechnungsregister ---- */
+function invoiceDueDate(x){
+  const raw=x.data?.dueDate||x.dueDate||"";
+  if(!raw) return null;
+  const d=new Date(raw+"T00:00:00");
+  return Number.isNaN(d.getTime())?null:d;
+}
+function invoicePaymentState(x){ return x.paymentStatus==="paid"?"paid":"open"; }
 function renderInvoiceRegister(){
   const el=$("invoiceList");
   if(invoicesError){ el.innerHTML=`<div class="alert error">Rechnungsregister konnte nicht geladen werden: ${esc(invoicesError)}</div>`; return; }
   if(!invoices.length){ el.innerHTML='<div class="empty">Noch keine definitiven Rechnungen vorhanden.</div>'; return; }
+  const today=new Date(); today.setHours(0,0,0,0);
+  const paid=invoices.filter(x=>invoicePaymentState(x)==="paid");
+  const open=invoices.filter(x=>invoicePaymentState(x)==="open");
+  const overdue=open.filter(x=>{const d=invoiceDueDate(x);return d&&d<today;});
+  const sum=list=>list.reduce((n,x)=>n+Number(x.total||0),0);
+  const overdueIds=new Set(overdue.map(x=>x.id));
+  const summary=`<div class="grid" style="margin:12px 0">
+    <div class="metric"><span>Offen</span><b>${chf(sum(open))}</b><small>${open.length} Rechnung(en)</small></div>
+    <div class="metric"><span>Bezahlt</span><b>${chf(sum(paid))}</b><small>${paid.length} Rechnung(en)</small></div>
+    <div class="metric"><span>Überfällig</span><b>${chf(sum(overdue))}</b><small>${overdue.length} Rechnung(en)</small></div>
+  </div>`;
+  const overdueHtml=overdue.length?`<div class="card" style="margin:12px 0"><h3>Überfällige Rechnungen</h3><p class="small muted">Diese Rechnungen sind offen und ihr Zahlungsziel ist überschritten.</p><div class="table-wrap"><table><thead><tr><th>Rechnung</th><th>Bezüger</th><th>Fällig seit</th><th>Betrag</th><th></th></tr></thead><tbody>${overdue.map(x=>{const d=invoiceDueDate(x);return `<tr><td>${esc(x.invoiceNo)}</td><td>${esc(x.customerName||x.data?.customer?.name||"")}</td><td>${d.toLocaleDateString("de-CH")}</td><td><b>${chf(x.total)}</b></td><td><button class="btn alt" data-remind-invoice="${esc(x.id)}">Zahlungserinnerung</button></td></tr>`;}).join("")}</tbody></table></div></div>`:`<div class="alert ok" style="margin:12px 0">Keine überfälligen offenen Rechnungen.</div>`;
   const periods=[...new Set(invoices.map(x=>x.period))].sort((a,b)=>periodValue(b)-periodValue(a));
-  el.innerHTML=periods.map(per=>{
+  el.innerHTML=summary+overdueHtml+periods.map(per=>{
     const list=invoices.filter(x=>x.period===per).sort((a,b)=>String(a.invoiceNo).localeCompare(String(b.invoiceNo)));
-    return `<div class="sec-title">${esc(per)}</div><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Liegenschaft</th><th>Betrag</th><th></th></tr></thead><tbody>${list.map(x=>`<tr><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(x.customerName||x.data?.customer?.name||"")}</td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td style="white-space:nowrap"><button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div><div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button><button class="btn danger" data-del-period="${esc(per)}">Quartal ${esc(per)} löschen</button></div>`;
+    return `<div class="sec-title">${esc(per)}</div><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Liegenschaft</th><th>Betrag</th><th>Zahlungsstatus</th><th>Fällig</th><th>Aktionen</th></tr></thead><tbody>${list.map(x=>{
+      const isPaid=invoicePaymentState(x)==="paid", due=invoiceDueDate(x), late=!isPaid&&due&&due<today;
+      const dueText=due?due.toLocaleDateString("de-CH"):"–";
+      return `<tr><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(x.customerName||x.data?.customer?.name||"")}</td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td><b style="color:${isPaid?"#18794e":late?"#b45309":"#8a5a00"}">${isPaid?"Bezahlt":"Offen"}${late?" · überfällig":""}</b></td><td>${dueText}</td><td style="white-space:nowrap"><button class="btn alt" data-payment-toggle="${esc(x.id)}">${isPaid?"Wieder öffnen":"Als bezahlt markieren"}</button> <button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`;
+    }).join("")}</tbody></table></div><div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button><button class="btn danger" data-del-period="${esc(per)}">Quartal ${esc(per)} löschen</button></div>`;
   }).join("");
 }
 document.addEventListener("click",async e=>{
@@ -1003,7 +1062,28 @@ $("createInvoiceBtn").onclick=async()=>{
     draftInvoices=list; draftMeta={propertyId,period};
     msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me-Summe ${fmtKwh(totalSmartme)}, Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(dev>5?` Achtung: Die Summen weichen um ${fmtPct(dev)} ab – bitte vor dem Versand prüfen.`:""),dev>5?"":"ok");
     const sum=list.reduce((s,x)=>s+x.total,0);
-    $("invoicePreview").innerHTML=`<div class="card" style="margin-top:12px;box-shadow:none"><h3>Prüfübersicht · ${esc(period)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Bezug</th><th>Solar</th><th>Netz</th><th>Betrag</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td><b>${esc(x.customer.name)}</b></td><td>${fmtKwh(x.kwh)}</td><td>${fmtKwh(x.solarKwh)}</td><td>${fmtKwh(x.gridKwh)}</td><td><b>${chf(x.total)}</b></td></tr>`).join("")}</tbody><tfoot><tr><th colspan="5">Total</th><th>${chf(sum)}</th></tr></tfoot></table></div><div class="toolbar"><button class="btn gold" id="draftViewBtn">Rechnungen ansehen / drucken</button><button class="btn" id="draftSaveBtn">Im Rechnungsregister speichern</button></div><p class="small muted">Der Solarstromanteil ist eine Schätzung: Er wird proportional zum Verbrauch auf alle Bezüger verteilt, da die Zähler nur den Gesamtbezug messen.</p></div>`;
+    // Zusätzlicher Abrechnungscheck: Hinweise anzeigen, ohne bestehende Berechnungen zu verändern.
+    const audit=list.map(inv=>{
+      const issues=[];
+      if(!(Number(inv.kwh)>0)) issues.push("Kein positiver Verbrauch erfasst");
+      const missingAddress=[!inv.customer.street,!inv.customer.house,!inv.customer.postal,!inv.customer.city].some(Boolean);
+      if(missingAddress) issues.push("Adresse des Bezügers unvollständig");
+      if(!inv.customer.email) issues.push("Keine E-Mail-Adresse hinterlegt (Versand manuell möglich)");
+      if(Number(inv.total)<0) issues.push("Negativer Rechnungsbetrag");
+      return {inv,issues};
+    });
+    const flagged=audit.filter(x=>x.issues.length);
+    const auditHtml=flagged.length
+      ? `<div class="alert" style="margin-top:14px"><b>${flagged.length} von ${list.length} Rechnungen mit Prüfhinweis(en)</b><ul class="small" style="margin:7px 0 0;padding-left:18px">${flagged.map(x=>`<li><b>${esc(x.inv.customer.name)}</b>: ${x.issues.map(esc).join(" · ")}</li>`).join("")}</ul><p class="small" style="margin:8px 0 0">Bitte Hinweise vor dem Speichern kontrollieren. Fehlende E-Mail-Adressen verhindern die PDF-Erstellung nicht.</p></div>`
+      : `<div class="alert ok" style="margin-top:14px"><b>Abrechnungs-Check bestanden.</b> Keine offensichtlichen Auffälligkeiten bei Verbrauch, Adresse und Rechnungsbetrag gefunden.</div>`;
+    $("invoicePreview").innerHTML=`<div class="card" style="margin-top:12px;box-shadow:none"><h3>Prüfübersicht · ${esc(period)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Bezug</th><th>Solar</th><th>Netz</th><th>Betrag</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td><b>${esc(x.customer.name)}</b></td><td>${fmtKwh(x.kwh)}</td><td>${fmtKwh(x.solarKwh)}</td><td>${fmtKwh(x.gridKwh)}</td><td><b>${chf(x.total)}</b></td></tr>`).join("")}</tbody><tfoot><tr><th colspan="5">Total</th><th>${chf(sum)}</th></tr></tfoot></table></div>${auditHtml}<div class="toolbar"><button class="btn gold" id="draftViewBtn">Rechnungen ansehen / drucken</button><button class="btn" id="draftSaveBtn">Im Rechnungsregister speichern</button><button class="btn alt" id="auditCsvBtn">Prüfbericht als CSV</button></div><p class="small muted">Der Solarstromanteil ist eine Schätzung: Er wird proportional zum Verbrauch auf alle Bezüger verteilt, da die Zähler nur den Gesamtbezug messen. Der neue Prüfbericht ergänzt die bestehende Kontrolle; Berechnungen und Rechnungsdaten bleiben unverändert.</p></div>`;
+    $("auditCsvBtn").onclick=()=>{
+      const cell=v=>{let s=String(v??"");if(/^[=+@\-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+      const rows=[["Rechnungsnummer","Bezüger","Zähler","Bezug kWh","Solar kWh","Netz kWh","Betrag CHF","Prüfhinweise"],...audit.map(x=>[x.inv.invoiceNo,x.inv.customer.name,x.inv.customer.meterId,x.inv.kwh,x.inv.solarKwh,x.inv.gridKwh,x.inv.total,x.issues.join("; ")])];
+      const csv="\uFEFF"+rows.map(r=>r.map(cell).join(";")).join("\r\n");
+      const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+      const a=document.createElement("a");a.href=url;a.download=`Abrechnungscheck_${period}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    };
     $("draftViewBtn").onclick=()=>showInvoices(draftInvoices,"Rechnungen "+period+" (Entwurf)");
     $("draftSaveBtn").onclick=async()=>{
       try{
