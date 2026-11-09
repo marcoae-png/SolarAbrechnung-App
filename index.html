@@ -343,7 +343,7 @@ async function loadSolarDashboard() {
   $("sdSelfUse").textContent=fmtKwh(selfUse);
   $("sdAutarky").textContent=fmtPct(autarky);
   $("sdSelfRate").textContent=fmtPct(selfRate);
-  const rows=imports.filter(x=>x.propertyId===propertyId&&x.period===period).flatMap(x=>x.rows||[]);
+  const rows=latestRows(imports.filter(x=>x.propertyId===propertyId&&x.period===period));
   const totalSmartme=rows.reduce((sum,r)=>sum+Number(r.kwh||0),0);
   const allocationRate=consumption>0?Math.max(0,Math.min(1,selfUse/consumption)):0;
   const tariffSnap=await getDoc(doc(db,"tariffs",propertyId));
@@ -384,6 +384,12 @@ async function deleteSolarConnection() {
   $("solarConnectionMessage").textContent="Solar-Manager-Verbindung gelöscht.";
 }
 
+const importMs=x=>x.createdAt?.toMillis?.()??Number.MAX_SAFE_INTEGER;
+function latestRows(importDocs){
+  const byMeter=new Map();
+  [...importDocs].sort((a,b)=>importMs(a)-importMs(b)).forEach(d=>(d.rows||[]).forEach(r=>byMeter.set(String(r.meterId),r)));
+  return [...byMeter.values()];
+}
 async function loadAll() {
   const uid=currentUser.uid;
   const [p,c,i]=await Promise.all([
@@ -582,6 +588,8 @@ $("saveImportBtn").onclick=async()=>{
   try {
     if(!pendingImport) throw new Error("Bitte zuerst Dateien prüfen.");
     const propIds=[...new Set(pendingImport.rows.map(x=>x.propertyId))];
+    const already=imports.some(x=>propIds.includes(x.propertyId)&&x.period===pendingImport.period);
+    if(already&&!confirm("Für "+pendingImport.period+" ist bereits ein Import gespeichert. Trotzdem speichern? Der neueste Import ersetzt dabei die alten Werte pro Zähler.")) return;
     for(const propertyId of propIds) {
       const rows=pendingImport.rows.filter(x=>x.propertyId===propertyId);
       await addDoc(collection(db,"imports"),{ownerUid:currentUser.uid,propertyId,period:pendingImport.period,rows,smartmeTotalKwh:rows.reduce((a,x)=>a+x.kwh,0),status:"checked-awaiting-solar-manager",createdAt:serverTimestamp()});
@@ -840,7 +848,7 @@ $("createInvoiceBtn").onclick=async()=>{
     const tariff=tariffSnap.data();
     if(!tariff.creditorName||!tariff.creditorPostal||!tariff.creditorCity||!validIban(tariff.iban||"")) throw new Error("Bitte zuerst unter «Tarife» die Rechnungssteller-Angaben (Name, PLZ, Ort) und eine gültige IBAN speichern. Sie werden für den QR-Zahlteil benötigt.");
     if(!(Number(tariff.gridRp)>0)) throw new Error("Bitte zuerst einen Netzstrom-Tarif grösser als 0 speichern.");
-    const rows=snap.docs.flatMap(d=>d.data().rows||[]);
+    const rows=latestRows(snap.docs.map(d=>d.data()));
     const missing=rows.filter(row=>!customers.some(c=>c.propertyId===propertyId&&String(c.meterId)===String(row.meterId)));
     if(missing.length) throw new Error("Für Zähler "+missing[0].meterId+" wurde kein Bezüger gefunden.");
     msg("Solar-Manager-Daten werden abgerufen …");
