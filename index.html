@@ -58,6 +58,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
     <button class="tab" data-tab="import">Smart-me-Import</button>
     <button class="tab" data-tab="tariffs">Tarife</button>
     <button class="tab" data-tab="invoices">Rechnungsregister</button>
+    <button class="tab" data-tab="solar">Solar-Manager</button>
   </nav>
   <section class="panel active" id="panel-dashboard">
     <div class="grid">
@@ -104,6 +105,37 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
   <section class="panel" id="panel-invoices">
     <div class="card"><h3>Rechnungsregister</h3><p class="muted small">Erstellte Rechnungen werden später hier nach Liegenschaft und Quartal angezeigt.</p><div id="invoiceList" class="empty">Noch keine Rechnungen vorhanden.</div></div>
   </section>
+
+  <section class="panel" id="panel-solar">
+  <div class="card">
+    <h3>Solar-Manager-Verbindung</h3>
+    <p class="muted small">
+      Verbinde deinen eigenen Solar Manager mit SolarAbrechnung.
+      Deine Zugangsdaten werden verschlüsselt gespeichert.
+    </p>
+
+    <div class="field">
+      <label for="solarGatewayId">Gateway-ID</label>
+      <input id="solarGatewayId" placeholder="Gateway-ID eingeben">
+    </div>
+
+    <div class="field">
+      <label for="solarApiKey">Solar-Manager API-Schlüssel</label>
+      <input id="solarApiKey" type="password"
+             placeholder="Persönlichen API-Schlüssel eingeben">
+    </div>
+
+    <button class="btn" id="saveSolarConnectionBtn">
+      Verbindung speichern
+    </button>
+
+    <button class="btn" id="deleteSolarConnectionBtn">
+      Verbindung löschen
+    </button>
+
+    <p id="solarConnectionMessage" class="small muted"></p>
+  </div>
+</section>
 </main>
 
 <div id="propertyModal" class="modal hidden"><div class="card"><h2>Liegenschaft erfassen</h2>
@@ -134,6 +166,7 @@ const firebaseConfig = {
   messagingSenderId: "623287479275",
   appId: "1:623287479275:web:f453b02cc9cc27109e47ae"
 };
+  const SOLAR_API_BASE = "https://solarabrechnung-api.marco-ae87.workers.dev";
 const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
 const $=id=>document.getElementById(id);
 let currentUser=null, properties=[], customers=[], imports=[], pendingImport=null;
@@ -142,6 +175,72 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const money=n=>"CHF "+Number(n||0).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
 function showAuth(msg="",error=false){$("authMessage").textContent=msg;$("authMessage").className=error?"small alert error":"small muted"}
 async function withAuth(action){if(!currentUser)throw new Error("Bitte zuerst anmelden.");return action()}
+  async function solarApiRequest(method, body = null) {
+  if (!currentUser) {
+    throw new Error("Bitte zuerst anmelden.");
+  }
+
+  const token = await currentUser.getIdToken();
+
+  const options = {
+    method,
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json"
+    }
+  };
+
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(
+    SOLAR_API_BASE + "/api/solar-connection",
+    options
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Solar-Manager-Verbindung fehlgeschlagen.");
+  }
+
+  return data;
+}
+
+async function loadSolarConnection() {
+  const data = await solarApiRequest("GET");
+
+  $("solarGatewayId").value = data.gatewayId || "";
+
+  $("solarConnectionMessage").textContent = data.connected
+    ? "Solar-Manager-Verbindung ist gespeichert."
+    : "Noch keine Verbindung gespeichert.";
+}
+
+async function saveSolarConnection() {
+  const gatewayId = $("solarGatewayId").value.trim();
+  const apiKey = $("solarApiKey").value.trim();
+
+  if (!gatewayId || !apiKey) {
+    throw new Error("Bitte Gateway-ID und API-Schlüssel eingeben.");
+  }
+
+  await solarApiRequest("POST", { gatewayId, apiKey });
+
+  $("solarApiKey").value = "";
+  $("solarConnectionMessage").textContent =
+    "Verbindung sicher gespeichert.";
+}
+
+async function deleteSolarConnection() {
+  await solarApiRequest("DELETE");
+
+  $("solarGatewayId").value = "";
+  $("solarApiKey").value = "";
+  $("solarConnectionMessage").textContent =
+    "Solar-Manager-Verbindung gelöscht.";
+}
 async function loadAll(){
  const uid=currentUser.uid;
  const [p,c,i]=await Promise.all([
@@ -169,8 +268,22 @@ $("logoutBtn").onclick=()=>signOut(auth);
 function authError(e){return ({ "auth/invalid-credential":"E-Mail oder Passwort ist falsch.","auth/email-already-in-use":"Diese E-Mail-Adresse ist bereits registriert.","auth/weak-password":"Das Passwort muss mindestens 6 Zeichen haben.","auth/invalid-email":"Bitte eine gültige E-Mail-Adresse eingeben.","auth/operation-not-allowed":"E-Mail/Passwort-Anmeldung ist in Firebase noch nicht aktiviert."})[e.code]||e.message}
 onAuthStateChanged(auth,async user=>{
  currentUser=user;$("loginView").classList.toggle("hidden",!!user);$("appView").classList.toggle("hidden",!user);
- if(user){$("userEmail").textContent=user.email||user.uid;try{await loadAll()}catch(e){alert("Firebase-Daten konnten nicht geladen werden: "+e.message)}}
-});
+if(user){
+  $("userEmail").textContent=user.email||user.uid;
+
+  try {
+    await loadAll();
+  } catch(e) {
+    alert("Firebase-Daten konnten nicht geladen werden: "+e.message);
+  }
+
+  try {
+    await loadSolarConnection();
+  } catch(e) {
+    $("solarConnectionMessage").textContent =
+      "Solar-Manager: " + e.message;
+  }
+}
 $("newPropertyBtn").onclick=$("addPropertyBtn").onclick=()=>{["pName","pStreet","pHouse","pPostal","pCity"].forEach(id=>$(id).value="");$("propertyError").textContent="";openModal("propertyModal")};
 $("addCustomerBtn").onclick=()=>{if(!properties.length){alert("Bitte zuerst eine Liegenschaft erfassen.");return}["cName","cMeter","cEmail","cStreet","cHouse","cPostal","cCity"].forEach(id=>$(id).value="");$("customerError").textContent="";openModal("customerModal")};
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
@@ -181,7 +294,25 @@ document.addEventListener("click",async e=>{
  const dc=e.target.closest("[data-del-customer]");if(dc){if(!confirm("Bezüger wirklich löschen?"))return;const c=customers.find(x=>x.id===dc.dataset.delCustomer);if(!c||c.ownerUid!==currentUser.uid)return;await deleteDoc(doc(db,"customers",c.id));await loadAll()}
 });
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===b));document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="panel-"+b.dataset.tab))});
-$("saveTariffBtn").onclick=async()=>{try{const propertyId=$("tariffProperty").value;if(!propertyId)throw new Error("Bitte zuerst eine Liegenschaft auswählen.");const p=properties.find(x=>x.id===propertyId);if(!p||p.ownerUid!==currentUser.uid)throw new Error("Ungültige Liegenschaft.");const data={ownerUid:currentUser.uid,propertyId,gridRp:Number($("gridRp").value),solarRp:Number($("solarRp").value),reductionMode:$("reductionMode").value,reductionValue:Number($("reductionValue").value),updatedAt:serverTimestamp()};await setDoc(doc(db,"tariffs",propertyId),data);say("tariffMessage","Tarife gespeichert.","ok")}catch(e){say("tariffMessage",e.message,"error")}};
+
+  $("saveSolarConnectionBtn").onclick = async () => {
+  try {
+    await saveSolarConnection();
+  } catch (e) {
+    $("solarConnectionMessage").textContent = e.message;
+  }
+};
+
+$("deleteSolarConnectionBtn").onclick = async () => {
+  if (!confirm("Solar-Manager-Verbindung wirklich löschen?")) return;
+
+  try {
+    await deleteSolarConnection();
+  } catch (e) {
+    $("solarConnectionMessage").textContent = e.message;
+  }
+};
+  $("saveTariffBtn").onclick=async()=>{try{const propertyId=$("tariffProperty").value;if(!propertyId)throw new Error("Bitte zuerst eine Liegenschaft auswählen.");const p=properties.find(x=>x.id===propertyId);if(!p||p.ownerUid!==currentUser.uid)throw new Error("Ungültige Liegenschaft.");const data={ownerUid:currentUser.uid,propertyId,gridRp:Number($("gridRp").value),solarRp:Number($("solarRp").value),reductionMode:$("reductionMode").value,reductionValue:Number($("reductionValue").value),updatedAt:serverTimestamp()};await setDoc(doc(db,"tariffs",propertyId),data);say("tariffMessage","Tarife gespeichert.","ok")}catch(e){say("tariffMessage",e.message,"error")}};
 $("tariffProperty").onchange=async()=>{const id=$("tariffProperty").value;if(!id)return;const {getDoc}=await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js");const s=await getDoc(doc(db,"tariffs",id));if(s.exists()){const t=s.data();$("gridRp").value=t.gridRp??0;$("solarRp").value=t.solarRp??0;$("reductionMode").value=t.reductionMode??"percent";$("reductionValue").value=t.reductionValue??0}else{$("gridRp").value=0;$("solarRp").value=0;$("reductionMode").value="percent";$("reductionValue").value=0}};
 let parsedFiles=[];
 function parseSwissDateRange(v){const m=String(v||"").match(/(\d{2}\.\d{2}\.\d{4}).*?(\d{2}\.\d{2}\.\d{4})/);if(!m)throw new Error("Zeitraum in B3 nicht lesbar: "+v);const parse=s=>{const [d,mo,y]=s.split(".").map(Number);return new Date(Date.UTC(y,mo-1,d))};return [parse(m[1]),parse(m[2])]}
