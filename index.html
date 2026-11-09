@@ -18,6 +18,8 @@ button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!impo
 .app-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:20px 0}.userline{font-size:12px;color:var(--muted)}
 .tabs{display:flex;gap:5px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow:auto}.tab{border:0;background:transparent;padding:11px 15px;color:var(--muted);font-weight:700;white-space:nowrap;border-bottom:2px solid transparent}.tab.active{color:var(--green);border-color:var(--gold)}
 .panel{display:none}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid.two{grid-template-columns:1.15fr .85fr}.metric{padding:18px;border-radius:13px;background:#fff;border:1px solid var(--line)}.metric span{display:block;color:var(--muted);font-size:11px}.metric b{display:block;font:normal 27px Georgia,serif;color:var(--forest);margin-top:5px}
+.solar-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}.solar-metric{background:linear-gradient(145deg,#fff,#f4f8f4);border:1px solid var(--line);border-radius:13px;padding:16px}.solar-metric span{display:block;color:var(--muted);font-size:11px}.solar-metric b{display:block;font:normal 25px Georgia,serif;color:var(--forest);margin:5px 0}.solar-metric small{color:var(--muted);font-size:11px}.solar-toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.solar-toolbar .field{min-width:170px;flex:1}.solar-table{margin-top:10px}.solar-note{font-size:11px;color:var(--muted);background:#f4f7f3;padding:10px 12px;border-radius:9px;margin-top:10px}
+@media(max-width:850px){.solar-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .table-wrap{overflow:auto;margin-top:12px}table{width:100%;border-collapse:collapse;min-width:620px}th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);font-size:12px}th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0}.drop{border:1.5px dashed #91b8a7;border-radius:12px;padding:22px;background:#f7faf7;text-align:center}.drop input{max-width:100%}
 .status{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 10px;background:#edf4ef;color:var(--green);font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:#26966b}.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;margin-top:12px}
@@ -50,6 +52,22 @@ button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!impo
   </nav>
   <section class="panel active" id="panel-dashboard">
     <div class="grid"><div class="metric"><span>Liegenschaften</span><b id="mProperties">0</b></div><div class="metric"><span>Bezüger / Zähler</span><b id="mCustomers">0</b></div><div class="metric"><span>Importierte Quartale</span><b id="mImports">0</b></div></div>
+    <div class="card" style="margin-top:15px">
+      <h3>Solar-Dashboard</h3><p class="muted small">Solarstromanteil, finanzielle Ersparnis und Kennzahlen der gesamten Anlage.</p>
+      <div class="solar-toolbar">
+        <div class="field"><label for="solarDashProperty">Liegenschaft</label><select id="solarDashProperty"></select></div>
+        <div class="field"><label for="solarDashPeriod">Abrechnungszeitraum</label><select id="solarDashPeriod"></select></div>
+        <button class="btn" id="refreshSolarDashboardBtn">Solarwerte laden</button>
+      </div>
+      <div id="solarDashMessage" class="alert">Wähle eine Liegenschaft und einen importierten Zeitraum.</div>
+      <div class="solar-metrics">
+        <div class="solar-metric"><span>Solarproduktion</span><b id="sdProduction">–</b><small>kWh im Zeitraum</small></div>
+        <div class="solar-metric"><span>Solarstrom selbst genutzt</span><b id="sdSelfUse">–</b><small>kWh Eigenverbrauch</small></div>
+        <div class="solar-metric"><span>Autarkiegrad</span><b id="sdAutarky">–</b><small>Anteil des Verbrauchs aus Solar</small></div>
+        <div class="solar-metric"><span>Eigenverbrauchsquote</span><b id="sdSelfRate">–</b><small>Anteil der Produktion selbst genutzt</small></div>
+      </div>
+      <div class="card" style="margin-top:14px;box-shadow:none"><h3>Solarstrom und Ersparnis pro Bezüger</h3><div id="solarCustomerEstimate" class="empty">Noch keine Solarwerte geladen.</div><div class="solar-note">Schätzung: Da die Smart-me-Zähler nur den Gesamtverbrauch messen, wird der Solarstrom proportional zum Verbrauch auf die Bezüger verteilt. Die individuelle Aufteilung ist nicht gemessen. Die Ersparnis wird aus der Differenz zwischen Netzstrom- und Solarstromtarif berechnet.</div></div>
+    </div>
     <div class="card" style="margin-top:15px"><h3>Willkommen bei SolarAbrechnung</h3><p class="muted small">Lege zuerst eine Liegenschaft und danach die zugehörigen Bezüger mit ihren Smart-me-Zählernummern an. Anschliessend kannst du die Excel-Exporte importieren.</p><div id="setupHint" class="alert">Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».</div></div>
     <div class="card" style="margin-top:15px"><h3>Abrechnungsstatus</h3><p class="muted small">Messdatenimport und Tarifverwaltung sind vorbereitet. Eine definitive Solarstromabrechnung wird erst freigegeben, wenn die Solar-Manager-Messwerte erfolgreich abgerufen und die Aufteilung von Solar- und Netzstrom nachvollziehbar berechnet wird.</p></div>
   </section>
@@ -74,7 +92,7 @@ button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!impo
 
 <div id="propertyModal" class="modal hidden"><div class="card"><h2>Liegenschaft erfassen</h2><div class="field"><label>Name der Liegenschaft</label><input id="pName" placeholder="z. B. Mehrfamilienhaus Musterstrasse"></div><div class="grid two"><div class="field"><label>Strasse</label><input id="pStreet"></div><div class="field"><label>Hausnummer</label><input id="pHouse"></div><div class="field"><label>PLZ</label><input id="pPostal"></div><div class="field"><label>Ort</label><input id="pCity"></div></div><div class="field"><label>Land</label><input id="pCountry" value="CH"></div><div class="toolbar"><button class="btn" id="savePropertyBtn">Speichern</button><button class="btn alt" data-close="propertyModal">Abbrechen</button></div><div id="propertyError" class="small" style="color:var(--red)"></div></div></div>
 <div id="customerModal" class="modal hidden"><div class="card"><h2>Bezüger erfassen</h2><div class="field"><label>Liegenschaft</label><select id="cProperty"></select></div><div class="grid two"><div class="field"><label>Name / Wohnung</label><input id="cName" placeholder="Wohnung 1 / Familie Muster"></div><div class="field"><label>Smart-me-Zählernummer</label><input id="cMeter" inputmode="numeric" placeholder="123456"></div><div class="field"><label>E-Mail (optional)</label><input id="cEmail" type="email"></div><div class="field"><label>Strasse</label><input id="cStreet"></div><div class="field"><label>Hausnummer</label><input id="cHouse"></div><div class="field"><label>PLZ</label><input id="cPostal"></div><div class="field"><label>Ort</label><input id="cCity"></div></div><div class="toolbar"><button class="btn" id="saveCustomerBtn">Speichern</button><button class="btn alt" data-close="customerModal">Abbrechen</button></div><div id="customerError" class="small" style="color:var(--red)"></div></div></div>
-<footer>SolarAbrechnung.ch · Datenhaltung Firebase · CHF 59.– pro Liegenschaft und Jahr (geplantes Abo)</footer>
+<footer>SolarAbrechnung.ch · Datenhaltung Firebase · Kostenlos in der Aufbauphase</footer>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -117,6 +135,79 @@ async function solarApiRequest(method, body=null) {
   if (!response.ok) throw new Error(data.error || "Solar-Manager-Verbindung fehlgeschlagen.");
   return data;
 }
+async function solarDataRequest(path) {
+  if (!currentUser) throw new Error("Bitte zuerst anmelden.");
+  const token = await currentUser.getIdToken();
+  const response = await fetch(SOLAR_API_BASE + path, {
+    method: "GET",
+    headers: {"Authorization":"Bearer "+token,"Accept":"application/json"}
+  });
+  const data = await response.json().catch(()=>({}));
+  if (!response.ok) throw new Error(data.error || "Solar-Manager-Daten konnten nicht geladen werden.");
+  return data;
+}
+function quarterDates(period) {
+  const m=String(period||"").match(/^(\d{4}) Q([1-4])$/i);
+  if(!m) throw new Error("Der Abrechnungszeitraum ist ungültig.");
+  const year=Number(m[1]), quarter=Number(m[2]), month=(quarter-1)*3;
+  const start=new Date(Date.UTC(year,month,1));
+  const end=new Date(Date.UTC(year,month+3,0,23,59,59));
+  return {from:start.toISOString(),to:end.toISOString()};
+}
+const fmtKwh = value => Number(value||0).toLocaleString("de-CH",{minimumFractionDigits:0,maximumFractionDigits:2})+" kWh";
+const fmtPct = value => Number(value||0).toLocaleString("de-CH",{minimumFractionDigits:1,maximumFractionDigits:1})+" %";
+function populateSolarDashboard() {
+  const propertyId=$("solarDashProperty").value;
+  const propertyImports=imports.filter(x=>x.propertyId===propertyId&&x.period);
+  const periods=[...new Set(propertyImports.map(x=>x.period))].sort((a,b)=>periodValue(b)-periodValue(a));
+  const previous=$("solarDashPeriod").value;
+  $("solarDashPeriod").innerHTML=periods.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("")||'<option value="">Kein Import vorhanden</option>';
+  if(periods.includes(previous)) $("solarDashPeriod").value=previous;
+  else if(periods.length) $("solarDashPeriod").value=periods[0];
+}
+async function loadSolarDashboard() {
+  const propertyId=$("solarDashProperty").value, period=$("solarDashPeriod").value;
+  if(!propertyId||!period) throw new Error("Für diese Liegenschaft ist kein Smart-me-Quartal importiert.");
+  const {from,to}=quarterDates(period);
+  $("solarDashMessage").className="alert";
+  $("solarDashMessage").textContent="Solar-Manager-Daten werden geladen …";
+  const result=await solarDataRequest("/api/solar-statistics?"+new URLSearchParams({from,to,accuracy:"low"}).toString());
+  const d=result.data||{};
+  const required=["production","consumption","selfConsumption","selfConsumptionRate","autarchyDegree"];
+  if(required.some(k=>!Number.isFinite(Number(d[k])))) throw new Error("Solar-Manager hat nicht alle benötigten Kennzahlen geliefert.");
+  // Die Statistik-API liefert Energiemengen in Wh; die Anzeige erfolgt in kWh.
+  const production=Number(d.production)/1000;
+  const consumption=Number(d.consumption)/1000;
+  const selfUse=Number(d.selfConsumption)/1000;
+  const autarky=Number(d.autarchyDegree);
+  const selfRate=Number(d.selfConsumptionRate);
+  $("sdProduction").textContent=fmtKwh(production);
+  $("sdSelfUse").textContent=fmtKwh(selfUse);
+  $("sdAutarky").textContent=fmtPct(autarky);
+  $("sdSelfRate").textContent=fmtPct(selfRate);
+  const rows=imports.filter(x=>x.propertyId===propertyId&&x.period===period).flatMap(x=>x.rows||[]);
+  const totalSmartme=rows.reduce((sum,r)=>sum+Number(r.kwh||0),0);
+  const allocationRate=consumption>0?Math.max(0,Math.min(1,selfUse/consumption)):0;
+  const tariffSnap=await getDoc(doc(db,"tariffs",propertyId));
+  const tariff=tariffSnap.exists()?tariffSnap.data():{gridRp:0,solarRp:0};
+  const priceDifference=Math.max(0,Number(tariff.gridRp||0)-Number(tariff.solarRp||0));
+  const estimates=rows.map(r=>{
+    const customer=customers.find(c=>c.propertyId===propertyId&&String(c.meterId)===String(r.meterId));
+    const solarKwh=Number(r.kwh||0)*allocationRate;
+    const saving=solarKwh*priceDifference/100;
+    return {name:customer?.name||r.customerName||r.meterId,kwh:Number(r.kwh||0),solarKwh,share:Number(r.kwh||0)>0?solarKwh/Number(r.kwh)*100:0,saving};
+  });
+  const totalSolarEstimate=estimates.reduce((a,x)=>a+x.solarKwh,0);
+  const totalSaving=estimates.reduce((a,x)=>a+x.saving,0);
+  $("solarCustomerEstimate").innerHTML=estimates.length?`<div class="table-wrap solar-table"><table><thead><tr><th>Bezüger</th><th>Verbrauch</th><th>Geschätzter Solarstrom</th><th>Solaranteil</th><th>Ersparnis</th></tr></thead><tbody>${estimates.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${fmtKwh(x.kwh)}</td><td>${fmtKwh(x.solarKwh)}</td><td>${fmtPct(x.share)}</td><td><b>CHF ${x.saving.toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2})}</b></td></tr>`).join("")}</tbody><tfoot><tr><th>Total (Schätzung)</th><th>${fmtKwh(totalSmartme)}</th><th>${fmtKwh(totalSolarEstimate)}</th><th>–</th><th>CHF ${totalSaving.toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2})}</th></tr></tfoot></table></div>`:'<div class="empty">Keine Smart-me-Messwerte für diesen Zeitraum.</div>';
+  const difference=consumption>0?Math.abs(totalSmartme-consumption)/consumption*100:0;
+  let note=`Solar-Manager-Verbrauch: ${fmtKwh(consumption)}. Smart-me-Summe: ${fmtKwh(totalSmartme)}. `;
+  if(difference>5) note+=`Achtung: Die beiden Verbrauchssummen weichen um ${fmtPct(difference)} ab. Die Bezüger-Aufteilung ist deshalb besonders unverbindlich. `;
+  note+="Die Ersparnis ist eine Schätzung und keine individuelle Messung.";
+  $("solarDashMessage").className="alert ok";
+  $("solarDashMessage").textContent=`Daten erfolgreich geladen · ${period} · Schätzwert Solarstromanteil pro Bezüger: ${fmtPct(allocationRate*100)}. ${note}`;
+}
+
 async function loadSolarConnection() {
   const data = await solarApiRequest("GET");
   $("solarGatewayId").value = data.gatewayId || "";
@@ -166,13 +257,15 @@ function renderAll() {
   $("mImports").textContent=new Set(imports.map(x=>x.period).filter(Boolean)).size;
   $("setupHint").textContent=properties.length?"Deine Liegenschaften sind eingerichtet. Verwalte jetzt die Bezüger und importiere die Quartalsdaten.":"Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».";
   const propertyOptions=properties.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("") || '<option value="">Keine Liegenschaft vorhanden</option>';
-  ["invoiceProperty","tariffProperty","cProperty"].forEach(id=>$(id).innerHTML=propertyOptions);
+  ["invoiceProperty","tariffProperty","cProperty","solarDashProperty"].forEach(id=>$(id).innerHTML=propertyOptions);
   if(properties.length) {
     $("invoiceProperty").value=properties[0].id;
     $("tariffProperty").value=properties[0].id;
     $("cProperty").value=properties[0].id;
   }
   $("invoiceProperty").onchange=refreshInvoicePeriod;
+  $("solarDashProperty").onchange=()=>{populateSolarDashboard();$("solarCustomerEstimate").innerHTML='<div class="empty">Zeitraum auswählen und Solarwerte laden.</div>';};
+  populateSolarDashboard();
   refreshInvoicePeriod();
 
   $("propertyList").innerHTML=properties.length?`<div class="table-wrap"><table><thead><tr><th>Liegenschaft</th><th>Adresse</th><th>Bezüger</th><th></th></tr></thead><tbody>${properties.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc([p.street,p.house,p.postal,p.city].filter(Boolean).join(" "))}</td><td>${customers.filter(c=>c.propertyId===p.id).length}</td><td><button class="btn danger" data-del-property="${esc(p.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Liegenschaft erfasst.</div>';
@@ -244,6 +337,8 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="panel-"+b.dataset.tab));
 });
 
+$("refreshSolarDashboardBtn").onclick=async()=>{try{await loadSolarDashboard();}catch(e){$("solarDashMessage").className="alert error";$("solarDashMessage").textContent=e.message;}};
+$("solarDashPeriod").onchange=()=>{$("solarCustomerEstimate").innerHTML='<div class="empty">Zeitraum ausgewählt. Bitte Solarwerte laden.</div>';};
 $("saveSolarConnectionBtn").onclick=async()=>{try{await saveSolarConnection();}catch(e){$("solarConnectionMessage").textContent=e.message;}};
 $("deleteSolarConnectionBtn").onclick=async()=>{if(!confirm("Solar-Manager-Verbindung wirklich löschen?"))return;try{await deleteSolarConnection();}catch(e){$("solarConnectionMessage").textContent=e.message;}};
 
