@@ -927,11 +927,20 @@ function renderInvoiceRegister(){
   const periods=[...new Set(invoices.map(x=>x.period))].sort((a,b)=>periodValue(b)-periodValue(a));
   el.innerHTML=summary+overdueHtml+periods.map(per=>{
     const list=invoices.filter(x=>x.period===per).sort((a,b)=>String(a.invoiceNo).localeCompare(String(b.invoiceNo)));
-    return `<div class="sec-title">${esc(per)}</div><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Liegenschaft</th><th>Betrag</th><th>Zahlungsstatus</th><th>Fällig</th><th>Aktionen</th></tr></thead><tbody>${list.map(x=>{
-      const isPaid=invoicePaymentState(x)==="paid", due=invoiceDueDate(x), late=!isPaid&&due&&due<today;
-      const dueText=due?due.toLocaleDateString("de-CH"):"–";
-      return `<tr><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(x.customerName||x.data?.customer?.name||"")}</td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td><b style="color:${isPaid?"#18794e":late?"#b45309":"#8a5a00"}">${isPaid?"Bezahlt":"Offen"}${late?" · überfällig":""}</b></td><td>${dueText}</td><td style="white-space:nowrap"><button class="btn alt" data-payment-toggle="${esc(x.id)}">${isPaid?"Wieder öffnen":"Als bezahlt markieren"}</button> <button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`;
-    }).join("")}</tbody></table></div><div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button><button class="btn danger" data-del-period="${esc(per)}">Quartal ${esc(per)} löschen</button></div>`;
+    const byCustomer=new Map();
+    list.forEach(x=>{
+      const name=x.customerName||x.data?.customer?.name||"Ohne Bezügerangabe";
+      if(!byCustomer.has(name)) byCustomer.set(name,[]);
+      byCustomer.get(name).push(x);
+    });
+    const customerSections=[...byCustomer.entries()].sort((a,b)=>a[0].localeCompare(b[0],"de-CH")).map(([customerName,customerInvoices])=>
+      `<div class="card" style="margin:12px 0"><h3>${esc(customerName)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Liegenschaft</th><th>Betrag</th><th>Zahlungsstatus</th><th>Fällig</th><th>Aktionen</th></tr></thead><tbody>${customerInvoices.map(x=>{
+        const isPaid=invoicePaymentState(x)==="paid", due=invoiceDueDate(x), late=!isPaid&&due&&due<today;
+        const dueText=due?due.toLocaleDateString("de-CH"):"–";
+        return `<tr><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td><b style="color:${isPaid?"#18794e":late?"#b45309":"#8a5a00"}">${isPaid?"Bezahlt":"Offen"}${late?" · überfällig":""}</b></td><td>${dueText}</td><td style="white-space:nowrap"><button class="btn alt" data-payment-toggle="${esc(x.id)}">${isPaid?"Wieder öffnen":"Als bezahlt markieren"}</button> <button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`;
+      }).join("")}</tbody></table></div></div>`
+    ).join("");
+    return `<div class="sec-title">${esc(per)}</div>${customerSections}<div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button><button class="btn danger" data-del-period="${esc(per)}">Quartal ${esc(per)} löschen</button></div>`;
   }).join("");
 }
 document.addEventListener("click",async e=>{
