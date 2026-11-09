@@ -1,0 +1,1 @@
+# SolarAbrechnung-App
