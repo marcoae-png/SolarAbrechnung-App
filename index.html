@@ -147,6 +147,19 @@ footer.site a.fl:hover{color:#e8d6ad}
   .grid,.grid.two{grid-template-columns:1fr}
   .app-hero h2{font-size:27px}
 }
+/* Farbige Kennzahlen im Dashboard */
+.grid>.metric{border-top:4px solid var(--c);background:linear-gradient(180deg,var(--bgc),#fff 70%)}
+.grid>.metric:nth-child(1){--c:#24715e;--bgc:#eaf2ed}.grid>.metric:nth-child(2){--c:#3a5fb0;--bgc:#eaf0fb}.grid>.metric:nth-child(3){--c:#c9a765;--bgc:#fbf3e2}
+.grid>.metric:nth-child(1) b{color:#24715e}.grid>.metric:nth-child(2) b{color:#3a5fb0}.grid>.metric:nth-child(3) b{color:#a2792a}
+.solar-metric{border-top:4px solid var(--c);background:var(--bgc);border-color:var(--bd);border-top-color:var(--c)}
+.solar-metric b{color:var(--cd)}
+.solar-metrics .solar-metric:nth-child(1){--c:#c9a765;--bgc:#fbf3e2;--bd:#ecd9ab;--cd:#a2792a}
+.solar-metrics .solar-metric:nth-child(2){--c:#24715e;--bgc:#eaf2ed;--bd:#cfe2d6;--cd:#24715e}
+.solar-metrics .solar-metric:nth-child(3){--c:#3a5fb0;--bgc:#eaf0fb;--bd:#cdd9f0;--cd:#3a5fb0}
+.solar-metrics .solar-metric:nth-child(4){--c:#1f7f86;--bgc:#e6f4f3;--bd:#c4e2e1;--cd:#1f7f86}
+.alert.ok{background:#eaf5ef;border-left:4px solid #24715e}
+.alert{border-left:4px solid #c9a765}.alert.error{border-left-color:#a33c2c}
+tfoot th{color:#24715e}
 </style>
 </head>
 <body>
@@ -203,8 +216,8 @@ footer.site a.fl:hover{color:#e8d6ad}
       </div>
       <div class="card" style="margin-top:14px;box-shadow:none"><h3>Solarstrom und Ersparnis pro Bezüger</h3><div id="solarCustomerEstimate" class="empty">Noch keine Solarwerte geladen.</div><div class="solar-note">Schätzung: Da die Smart-me-Zähler nur den Gesamtverbrauch messen, wird der Solarstrom proportional zum Verbrauch auf die Bezüger verteilt. Die individuelle Aufteilung ist nicht gemessen. Die Ersparnis wird aus der Differenz zwischen Netzstrom- und Solarstromtarif berechnet.</div></div>
     </div>
-    <div class="card" style="margin-top:15px"><h3>Willkommen bei SolarAbrechnung</h3><p class="muted small">Lege zuerst eine Liegenschaft und danach die zugehörigen Bezüger mit ihren Smart-me-Zählernummern an. Anschliessend kannst du die Excel-Exporte importieren.</p><div id="setupHint" class="alert">Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».</div></div>
-    <div class="card" style="margin-top:15px"><h3>Abrechnungsstatus</h3><p class="muted small">Messdatenimport und Tarifverwaltung sind vorbereitet. Eine definitive Solarstromabrechnung wird erst freigegeben, wenn die Solar-Manager-Messwerte erfolgreich abgerufen und die Aufteilung von Solar- und Netzstrom nachvollziehbar berechnet wird.</p></div>
+    <div class="card" id="welcomeCard" style="margin-top:15px"><h3>Willkommen bei SolarAbrechnung</h3><p class="muted small">Lege zuerst eine Liegenschaft und danach die zugehörigen Bezüger mit ihren Smart-me-Zählernummern an. Anschliessend kannst du die Excel-Exporte importieren.</p><div id="setupHint" class="alert">Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».</div></div>
+    
   </section>
   <section class="panel" id="panel-properties"><div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>Meine Liegenschaften</h3><p class="muted small">Jede Liegenschaft wird separat verwaltet und abgerechnet.</p></div><button class="btn" id="addPropertyBtn">+ Hinzufügen</button></div><div id="propertyList" class="empty">Noch keine Liegenschaft erfasst.</div></div></section>
   <section class="panel" id="panel-customers"><div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>Bezüger & Smart-me-Zähler</h3><p class="muted small">Ordne jeden Zähler einem Bezüger und einer Liegenschaft zu.</p></div><button class="btn" id="addCustomerBtn">+ Bezüger hinzufügen</button></div><div id="customerList" class="empty">Noch keine Bezüger erfasst.</div></div></section>
@@ -402,6 +415,7 @@ function renderAll() {
   $("mProperties").textContent=properties.length;
   $("mCustomers").textContent=customers.length;
   $("mImports").textContent=new Set(imports.map(x=>x.period).filter(Boolean)).size;
+  $("welcomeCard").classList.toggle("hidden",properties.length>0);
   $("setupHint").textContent=properties.length?"Deine Liegenschaften sind eingerichtet. Verwalte jetzt die Bezüger und importiere die Quartalsdaten.":"Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».";
   const propertyOptions=properties.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("") || '<option value="">Keine Liegenschaft vorhanden</option>';
   ["invoiceProperty","tariffProperty","cProperty","solarDashProperty"].forEach(id=>$(id).innerHTML=propertyOptions);
