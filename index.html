@@ -345,6 +345,7 @@ $("inspectFilesBtn").onclick=async()=>{
  }catch(e){parsedFiles=[];pendingImport=null;$("saveImportBtn").disabled=true;$("importMessage").textContent=e.message;$("importMessage").className="small alert error"}
 };
 $("saveImportBtn").onclick=async()=>{try{if(!pendingImport)throw new Error("Bitte zuerst Dateien prüfen.");const propIds=[...new Set(pendingImport.rows.map(x=>x.propertyId))];for(const propertyId of propIds){const rows=pendingImport.rows.filter(x=>x.propertyId===propertyId);await addDoc(collection(db,"imports"),{ownerUid:currentUser.uid,propertyId,period:pendingImport.period,rows,smartmeTotalKwh:rows.reduce((a,x)=>a+x.kwh,0),status:"checked-awaiting-solar-manager",createdAt:serverTimestamp()})}say("importMessage","Geprüfte Messwerte wurden in Firebase gespeichert.","ok");$("saveImportBtn").disabled=true;pendingImport=null;await loadAll()}catch(e){say("importMessage",e.message,"error")}};
-</script>
+});
+                   </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </body></html>
