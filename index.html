@@ -1,31 +1,27 @@
 <!doctype html>
 <html lang="de-CH">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SolarAbrechnung.ch · Kundenportal</title>
 <meta name="theme-color" content="#174d44">
 <style>
-:root{--forest:#123d35;--green:#176b5b;--mint:#e8f2ec;--gold:#c39b55;--ink:#1b302c;--muted:#6b7c75;--line:#dce6df;--paper:#fff;--bg:#f2f5f1;--red:#a33c2c}
+:root{--forest:#123d35;--green:#176b5b;--mint:#e8f2ec;--gold:#c39b55;--ink:#1b302c;--muted:#6b7c75;--line:#dce6df;--bg:#f2f5f1;--red:#a33c2c}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Segoe UI",Arial,sans-serif}
 button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!important}
 .top{background:var(--forest);color:#e9f1ec;padding:10px 22px;display:flex;justify-content:space-between;align-items:center;font-size:12px}
-.wrap{max-width:1220px;margin:auto;padding:24px 20px 50px}
-.brand{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border-radius:13px;background:var(--green);color:white;display:grid;place-items:center;font-weight:900;font-size:17px}.brand h1{font:normal 26px Georgia,serif;margin:0;color:var(--forest)}.brand small{color:var(--muted)}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:16px}
-.btn{border:0;border-radius:9px;padding:10px 15px;background:var(--green);color:#fff;font-weight:700;font-size:12px}.btn:hover{background:#105448}.btn.alt{background:#edf4ef;color:var(--green);border:1px solid var(--line)}.btn.danger{background:#fff1ed;color:var(--red);border:1px solid #f0d1c8}.btn:disabled{opacity:.5;cursor:not-allowed}
-.card{background:white;border:1px solid var(--line);border-radius:15px;padding:20px;box-shadow:0 8px 26px #153b3010}.card h2,.card h3{font:normal 20px Georgia,serif;margin:0 0 5px;color:var(--forest)}.muted{color:var(--muted)}.small{font-size:12px}
-.login{max-width:460px;margin:7vh auto}.login .card{padding:28px}.field{display:grid;gap:5px;margin:12px 0}.field label{font-size:11px;color:var(--muted);font-weight:700}.field input,.field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px;background:white;color:var(--ink);min-height:42px}
+.wrap{max-width:1220px;margin:auto;padding:24px 20px 50px}.brand{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border-radius:13px;background:var(--green);color:white;display:grid;place-items:center;font-weight:900;font-size:17px}.brand h1{font:normal 26px Georgia,serif;margin:0;color:var(--forest)}.brand small{color:var(--muted)}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:16px}.btn{border:0;border-radius:9px;padding:10px 15px;background:var(--green);color:#fff;font-weight:700;font-size:12px}.btn:hover{background:#105448}.btn.alt{background:#edf4ef;color:var(--green);border:1px solid var(--line)}.btn.danger{background:#fff1ed;color:var(--red);border:1px solid #f0d1c8}.btn:disabled{opacity:.5;cursor:not-allowed}
+.card{background:white;border:1px solid var(--line);border-radius:15px;padding:20px;box-shadow:0 8px 26px #153b3010}.card h2,.card h3{font:normal 20px Georgia,serif;margin:0 0 5px;color:var(--forest)}.muted{color:var(--muted)}.small{font-size:12px}.login{max-width:460px;margin:7vh auto}.login .card{padding:28px}
+.field{display:grid;gap:5px;margin:12px 0}.field label{font-size:11px;color:var(--muted);font-weight:700}.field input,.field select{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px;background:white;color:var(--ink);min-height:42px}
 .login-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.alert{padding:11px 13px;border-radius:9px;background:#fff6e8;color:#79521d;font-size:12px;margin:12px 0}.alert.error{background:#fff0ed;color:var(--red)}.alert.ok{background:#eaf5ef;color:#176b5b}
 .app-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:20px 0}.userline{font-size:12px;color:var(--muted)}
 .tabs{display:flex;gap:5px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow:auto}.tab{border:0;background:transparent;padding:11px 15px;color:var(--muted);font-weight:700;white-space:nowrap;border-bottom:2px solid transparent}.tab.active{color:var(--green);border-color:var(--gold)}
 .panel{display:none}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid.two{grid-template-columns:1.15fr .85fr}.metric{padding:18px;border-radius:13px;background:#fff;border:1px solid var(--line)}.metric span{display:block;color:var(--muted);font-size:11px}.metric b{display:block;font:normal 27px Georgia,serif;color:var(--forest);margin-top:5px}
 .table-wrap{overflow:auto;margin-top:12px}table{width:100%;border-collapse:collapse;min-width:620px}th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);font-size:12px}th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
-.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0}.toolbar input,.toolbar select{border:1px solid var(--line);border-radius:8px;padding:9px;background:white}
-.drop{border:1.5px dashed #91b8a7;border-radius:12px;padding:22px;background:#f7faf7;text-align:center}.drop input{max-width:100%}
-.status{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 10px;background:#edf4ef;color:var(--green);font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:#26966b}
-.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;margin-top:12px}
-.modal{position:fixed;inset:0;background:#0b211dbb;display:grid;place-items:center;padding:18px;z-index:20}.modal .card{width:min(560px,100%);max-height:90vh;overflow:auto}
-footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0}.drop{border:1.5px dashed #91b8a7;border-radius:12px;padding:22px;background:#f7faf7;text-align:center}.drop input{max-width:100%}
+.status{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 10px;background:#edf4ef;color:var(--green);font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:#26966b}.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px;margin-top:12px}
+.modal{position:fixed;inset:0;background:#0b211dbb;display:grid;place-items:center;padding:18px;z-index:20}.modal .card{width:min(560px,100%);max-height:90vh;overflow:auto}footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
 @media(max-width:850px){.grid,.grid.two{grid-template-columns:1fr}.header,.app-head{align-items:flex-start;flex-direction:column}.wrap{padding:18px 12px}.top{padding:9px 12px}}
 </style>
 </head>
@@ -35,14 +31,12 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
 <section id="loginView" class="wrap login">
   <div class="brand" style="margin-bottom:18px"><div class="mark">SA</div><div><h1>SolarAbrechnung.ch</h1><small>Einfach. Transparent. Digital.</small></div></div>
   <div class="card">
-    <h2 id="authTitle">Willkommen zurück</h2>
-    <p class="muted small">Melde dich an, um deine Liegenschaften und Abrechnungen zu verwalten.</p>
+    <h2>Willkommen zurück</h2><p class="muted small">Melde dich an, um deine Liegenschaften und Abrechnungen zu verwalten.</p>
     <div class="field"><label for="email">E-Mail-Adresse</label><input id="email" type="email" autocomplete="username" placeholder="name@beispiel.ch"></div>
     <div class="field"><label for="password">Passwort</label><input id="password" type="password" autocomplete="current-password" placeholder="Mindestens 6 Zeichen"></div>
     <div id="authMessage" class="small muted" aria-live="polite"></div>
     <div class="login-actions"><button class="btn" id="loginBtn">Anmelden</button><button class="btn alt" id="registerBtn">Konto erstellen</button><button class="btn alt" id="resetBtn">Passwort vergessen</button></div>
-  </div>
-  <p class="muted small" style="text-align:center">Deine Daten werden getrennt und geschützt in Firebase gespeichert.</p>
+  </div><p class="muted small" style="text-align:center">Deine Daten werden getrennt und geschützt in Firebase gespeichert.</p>
 </section>
 
 <main id="appView" class="wrap hidden">
@@ -52,136 +46,41 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
   </div>
   <div class="app-head"><div><h2 style="font:normal 25px Georgia,serif;margin:0;color:var(--forest)">Übersicht</h2><div class="userline" id="userEmail"></div></div><button class="btn" id="newPropertyBtn">+ Liegenschaft hinzufügen</button></div>
   <nav class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="properties">Liegenschaften</button>
-    <button class="tab" data-tab="customers">Bezüger & Zähler</button>
-    <button class="tab" data-tab="import">Smart-me-Import</button>
-    <button class="tab" data-tab="tariffs">Tarife</button>
-    <button class="tab" data-tab="invoices">Rechnungsregister</button>
-    <button class="tab" data-tab="solar">Solar-Manager</button>
+    <button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="properties">Liegenschaften</button><button class="tab" data-tab="customers">Bezüger & Zähler</button><button class="tab" data-tab="import">Smart-me-Import</button><button class="tab" data-tab="tariffs">Tarife</button><button class="tab" data-tab="invoices">Rechnungsregister</button><button class="tab" data-tab="solar">Solar-Manager</button>
   </nav>
   <section class="panel active" id="panel-dashboard">
-    <div class="grid">
-      <div class="metric"><span>Liegenschaften</span><b id="mProperties">0</b></div>
-      <div class="metric"><span>Bezüger / Zähler</span><b id="mCustomers">0</b></div>
-      <div class="metric"><span>Importierte Quartale</span><b id="mImports">0</b></div>
-    </div>
+    <div class="grid"><div class="metric"><span>Liegenschaften</span><b id="mProperties">0</b></div><div class="metric"><span>Bezüger / Zähler</span><b id="mCustomers">0</b></div><div class="metric"><span>Importierte Quartale</span><b id="mImports">0</b></div></div>
     <div class="card" style="margin-top:15px"><h3>Willkommen bei SolarAbrechnung</h3><p class="muted small">Lege zuerst eine Liegenschaft und danach die zugehörigen Bezüger mit ihren Smart-me-Zählernummern an. Anschliessend kannst du die Excel-Exporte importieren.</p><div id="setupHint" class="alert">Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».</div></div>
-    <div class="card" style="margin-top:15px"><h3>Nächste Ausbaustufe</h3><p class="muted small">Die Firebase-Grundlage, Kundenverwaltung und Smart-me-Dateiprüfung sind vorbereitet. Die produktive Solar-Manager-API-Anbindung und die definitive QR-Rechnungsberechnung werden erst nach Einrichtung eines sicheren API-Proxys aktiviert – es werden keine erfundenen Solarwerte verwendet.</p></div>
+    <div class="card" style="margin-top:15px"><h3>Abrechnungsstatus</h3><p class="muted small">Messdatenimport und Tarifverwaltung sind vorbereitet. Eine definitive Solarstromabrechnung wird erst freigegeben, wenn die Solar-Manager-Messwerte erfolgreich abgerufen und die Aufteilung von Solar- und Netzstrom nachvollziehbar berechnet wird.</p></div>
   </section>
-
-  <section class="panel" id="panel-properties">
-    <div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>Meine Liegenschaften</h3><p class="muted small">Jede Liegenschaft wird separat verwaltet und abgerechnet.</p></div><button class="btn" id="addPropertyBtn">+ Hinzufügen</button></div><div id="propertyList" class="empty">Noch keine Liegenschaft erfasst.</div></div>
-  </section>
-
-  <section class="panel" id="panel-customers">
-    <div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>Bezüger & Smart-me-Zähler</h3><p class="muted small">Ordne jeden Zähler einem Bezüger und einer Liegenschaft zu.</p></div><button class="btn" id="addCustomerBtn">+ Bezüger hinzufügen</button></div><div id="customerList" class="empty">Noch keine Bezüger erfasst.</div></div>
-  </section>
-
+  <section class="panel" id="panel-properties"><div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>Meine Liegenschaften</h3><p class="muted small">Jede Liegenschaft wird separat verwaltet und abgerechnet.</p></div><button class="btn" id="addPropertyBtn">+ Hinzufügen</button></div><div id="propertyList" class="empty">Noch keine Liegenschaft erfasst.</div></div></section>
+  <section class="panel" id="panel-customers"><div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>Bezüger & Smart-me-Zähler</h3><p class="muted small">Ordne jeden Zähler einem Bezüger und einer Liegenschaft zu.</p></div><button class="btn" id="addCustomerBtn">+ Bezüger hinzufügen</button></div><div id="customerList" class="empty">Noch keine Bezüger erfasst.</div></div></section>
   <section class="panel" id="panel-import">
-    <div class="grid two">
-      <div class="card"><h3>Smart-me-Excel importieren</h3><p class="muted small">Mehrere Bezügerdateien für dasselbe vollständige Kalenderquartal auswählen.</p>
-        <div class="drop"><b>Dateien auswählen</b><p class="muted small">Excel .xlsx – mehrere Dateien möglich</p><input id="excelFiles" type="file" accept=".xlsx,.xls" multiple></div>
-        <div class="toolbar"><button class="btn" id="inspectFilesBtn">Dateien prüfen</button><button class="btn alt" id="saveImportBtn" disabled>Import in Firebase speichern</button></div>
-        <div id="importMessage" class="small muted">Noch keine Dateien ausgewählt.</div>
-      </div>
-      <div class="card"><h3>Import-Regeln</h3><ul class="small muted"><li>Bezüger/Zähler wird aus Zelle B2 erkannt.</li><li>Abrechnungszeitraum wird aus B3 gelesen.</li><li>Gesamtbezug wird in Spalte E bei «Import Total» bzw. «Bezug Total» gesucht.</li><li>Alle Dateien müssen dasselbe volle Kalenderquartal enthalten.</li><li>Jeder Zähler darf nur einmal vorkommen.</li></ul><div class="alert">Dieser Import speichert geprüfte Messwerte. Er erstellt noch keine Rechnungen, solange die Solar-Manager-Kennzahlen nicht sicher abgerufen werden können.</div></div>
-    </div>
+    <div class="grid two"><div class="card"><h3>Smart-me-Excel importieren</h3><p class="muted small">Mehrere Bezügerdateien für dasselbe vollständige Kalenderquartal auswählen.</p><div class="drop"><b>Dateien auswählen</b><p class="muted small">Excel .xlsx – mehrere Dateien möglich</p><input id="excelFiles" type="file" accept=".xlsx,.xls" multiple></div><div class="toolbar"><button class="btn" id="inspectFilesBtn">Dateien prüfen</button><button class="btn alt" id="saveImportBtn" disabled>Import in Firebase speichern</button></div><div id="importMessage" class="small muted">Noch keine Dateien ausgewählt.</div></div>
+    <div class="card"><h3>Import-Regeln</h3><ul class="small muted"><li>Bezüger/Zähler wird aus B2 erkannt.</li><li>Abrechnungszeitraum wird aus B3 gelesen.</li><li>Gesamtbezug wird in Spalte E bei «Import Total» bzw. «Bezug Total» gesucht.</li><li>Alle Dateien müssen dasselbe volle Kalenderquartal enthalten.</li><li>Jeder Zähler darf nur einmal vorkommen.</li></ul></div></div>
     <div class="card" style="margin-top:14px"><h3>Prüfergebnis</h3><div id="importPreview" class="empty">Nach der Dateiprüfung erscheint hier die Übersicht.</div></div>
   </section>
-
-  <section class="panel" id="panel-tariffs">
-    <div class="card"><h3>Tarife je Liegenschaft</h3><p class="muted small">Preise in Rappen pro kWh. Die Einstellungen werden in Firestore gespeichert.</p>
-      <div class="field"><label for="tariffProperty">Liegenschaft</label><select id="tariffProperty"></select></div>
-      <div class="grid two">
-        <div class="field"><label for="gridRp">Netzstrom Rp./kWh</label><input id="gridRp" type="number" min="0" step="0.01" value="0"></div>
-        <div class="field"><label for="solarRp">Solarstrom Rp./kWh</label><input id="solarRp" type="number" min="0" step="0.01" value="0"></div>
-        <div class="field"><label for="reductionMode">Reduktionsart</label><select id="reductionMode"><option value="percent">Rabatt in Prozent</option><option value="fixed">Pauschalabzug CHF</option></select></div>
-        <div class="field"><label for="reductionValue">Reduktion</label><input id="reductionValue" type="number" min="0" step="0.01" value="0"></div>
-      </div><button class="btn" id="saveTariffBtn">Tarife speichern</button><span id="tariffMessage" class="small muted" style="margin-left:10px"></span>
+  <section class="panel" id="panel-tariffs"><div class="card"><h3>Tarife je Liegenschaft</h3><p class="muted small">Preise in Rappen pro kWh. Die Einstellungen werden in Firestore gespeichert.</p><div class="field"><label for="tariffProperty">Liegenschaft</label><select id="tariffProperty"></select></div><div class="grid two"><div class="field"><label for="gridRp">Netzstrom Rp./kWh</label><input id="gridRp" type="number" min="0" step="0.01" value="0"></div><div class="field"><label for="solarRp">Solarstrom Rp./kWh</label><input id="solarRp" type="number" min="0" step="0.01" value="0"></div><div class="field"><label for="reductionMode">Reduktionsart</label><select id="reductionMode"><option value="percent">Rabatt in Prozent</option><option value="fixed">Pauschalabzug CHF</option></select></div><div class="field"><label for="reductionValue">Reduktion</label><input id="reductionValue" type="number" min="0" step="0.01" value="0"></div></div><button class="btn" id="saveTariffBtn">Tarife speichern</button><span id="tariffMessage" class="small muted" style="margin-left:10px"></span></div></section>
+  <section class="panel" id="panel-invoices">
+    <div class="card"><h3>Rechnung vorbereiten</h3><p class="muted small">Liegenschaft und das neueste importierte Quartal werden automatisch erkannt.</p>
+      <div class="field"><label for="invoiceProperty">Liegenschaft</label><select id="invoiceProperty"></select></div>
+      <div class="field"><label for="invoicePeriod">Abrechnungsquartal</label><input id="invoicePeriod" type="text" readonly placeholder="Wird automatisch erkannt"></div>
+      <button class="btn" id="createInvoiceBtn">Abrechnung prüfen</button><div id="invoiceMessage" class="alert" style="display:none"></div><div id="invoicePreview"></div>
     </div>
+    <div class="card" style="margin-top:15px"><h3>Rechnungsregister</h3><div id="invoiceList" class="empty">Noch keine definitiven Rechnungen vorhanden.</div></div>
   </section>
-
-<section class="panel" id="panel-invoices">
-  <div class="card">
-    <h3>Neue Rechnung erstellen</h3>
-    <p class="muted small">Abrechnungsdaten auswählen und Rechnung vorbereiten.</p>
-
-    <div class="field">
-      <label for="invoiceProperty">Liegenschaft</label>
-      <select id="invoiceProperty"></select>
-    </div>
-
-<div class="field">
-  <label for="invoicePeriod">Automatisch erkanntes Abrechnungsquartal</label>
-  <input id="invoicePeriod" type="text" readonly
-         placeholder="Wird automatisch erkannt">
-</div>
-    </div>
-
-    <button class="btn" id="createInvoiceBtn">Rechnung erstellen</button>
-    <div id="invoiceMessage" class="alert" style="display:none"></div>
-    <div id="invoicePreview"></div>
-  </div>
-
-  <div class="card" style="margin-top:15px">
-    <h3>Rechnungsregister</h3>
-    <div id="invoiceList" class="empty">Noch keine Rechnungen vorhanden.</div>
-  </div>
-
-  </section>
-
-  <section class="panel" id="panel-solar">
-  <div class="card">
-    <h3>Solar-Manager-Verbindung</h3>
-    <p class="muted small">
-      Verbinde deinen eigenen Solar Manager mit SolarAbrechnung.
-      Deine Zugangsdaten werden verschlüsselt gespeichert.
-    </p>
-
-    <div class="field">
-      <label for="solarGatewayId">Gateway-ID</label>
-      <input id="solarGatewayId" placeholder="Gateway-ID eingeben">
-    </div>
-
-    <div class="field">
-      <label for="solarApiKey">Solar-Manager API-Schlüssel</label>
-      <input id="solarApiKey" type="password"
-             placeholder="Persönlichen API-Schlüssel eingeben">
-    </div>
-
-    <button class="btn" id="saveSolarConnectionBtn">
-      Verbindung speichern
-    </button>
-
-    <button class="btn" id="deleteSolarConnectionBtn">
-      Verbindung löschen
-    </button>
-
-    <p id="solarConnectionMessage" class="small muted"></p>
-  </div>
-</section>
+  <section class="panel" id="panel-solar"><div class="card"><h3>Solar-Manager-Verbindung</h3><p class="muted small">Deine Zugangsdaten werden über den sicheren Cloudflare-Worker verschlüsselt gespeichert. Den API-Schlüssel nicht weitergeben.</p><div class="field"><label for="solarGatewayId">Gateway-ID</label><input id="solarGatewayId" placeholder="Gateway-ID eingeben"></div><div class="field"><label for="solarApiKey">Solar-Manager API-Schlüssel</label><input id="solarApiKey" type="password" placeholder="Persönlichen API-Schlüssel eingeben"></div><div class="toolbar"><button class="btn" id="saveSolarConnectionBtn">Verbindung speichern</button><button class="btn danger" id="deleteSolarConnectionBtn">Verbindung löschen</button></div><p id="solarConnectionMessage" class="small muted"></p></div></section>
 </main>
 
-<div id="propertyModal" class="modal hidden"><div class="card"><h2>Liegenschaft erfassen</h2>
- <div class="field"><label>Name der Liegenschaft</label><input id="pName" placeholder="z. B. Mehrfamilienhaus Musterstrasse"></div>
- <div class="grid two"><div class="field"><label>Strasse</label><input id="pStreet"></div><div class="field"><label>Hausnummer</label><input id="pHouse"></div><div class="field"><label>PLZ</label><input id="pPostal"></div><div class="field"><label>Ort</label><input id="pCity"></div></div>
- <div class="field"><label>Land</label><input id="pCountry" value="CH"></div><div class="toolbar"><button class="btn" id="savePropertyBtn">Speichern</button><button class="btn alt" data-close="propertyModal">Abbrechen</button></div><div id="propertyError" class="small" style="color:var(--red)"></div>
-</div></div>
-
-<div id="customerModal" class="modal hidden"><div class="card"><h2>Bezüger erfassen</h2>
- <div class="field"><label>Liegenschaft</label><select id="cProperty"></select></div>
- <div class="grid two"><div class="field"><label>Name / Wohnung</label><input id="cName" placeholder="Wohnung 1 / Familie Muster"></div><div class="field"><label>Smart-me-Zählernummer</label><input id="cMeter" inputmode="numeric" placeholder="123456"></div><div class="field"><label>E-Mail (optional)</label><input id="cEmail" type="email"></div><div class="field"><label>Strasse</label><input id="cStreet"></div><div class="field"><label>Hausnummer</label><input id="cHouse"></div><div class="field"><label>PLZ</label><input id="cPostal"></div><div class="field"><label>Ort</label><input id="cCity"></div></div>
- <div class="toolbar"><button class="btn" id="saveCustomerBtn">Speichern</button><button class="btn alt" data-close="customerModal">Abbrechen</button></div><div id="customerError" class="small" style="color:var(--red)"></div>
-</div></div>
-
+<div id="propertyModal" class="modal hidden"><div class="card"><h2>Liegenschaft erfassen</h2><div class="field"><label>Name der Liegenschaft</label><input id="pName" placeholder="z. B. Mehrfamilienhaus Musterstrasse"></div><div class="grid two"><div class="field"><label>Strasse</label><input id="pStreet"></div><div class="field"><label>Hausnummer</label><input id="pHouse"></div><div class="field"><label>PLZ</label><input id="pPostal"></div><div class="field"><label>Ort</label><input id="pCity"></div></div><div class="field"><label>Land</label><input id="pCountry" value="CH"></div><div class="toolbar"><button class="btn" id="savePropertyBtn">Speichern</button><button class="btn alt" data-close="propertyModal">Abbrechen</button></div><div id="propertyError" class="small" style="color:var(--red)"></div></div></div>
+<div id="customerModal" class="modal hidden"><div class="card"><h2>Bezüger erfassen</h2><div class="field"><label>Liegenschaft</label><select id="cProperty"></select></div><div class="grid two"><div class="field"><label>Name / Wohnung</label><input id="cName" placeholder="Wohnung 1 / Familie Muster"></div><div class="field"><label>Smart-me-Zählernummer</label><input id="cMeter" inputmode="numeric" placeholder="123456"></div><div class="field"><label>E-Mail (optional)</label><input id="cEmail" type="email"></div><div class="field"><label>Strasse</label><input id="cStreet"></div><div class="field"><label>Hausnummer</label><input id="cHouse"></div><div class="field"><label>PLZ</label><input id="cPostal"></div><div class="field"><label>Ort</label><input id="cCity"></div></div><div class="toolbar"><button class="btn" id="saveCustomerBtn">Speichern</button><button class="btn alt" data-close="customerModal">Abbrechen</button></div><div id="customerError" class="small" style="color:var(--red)"></div></div></div>
 <footer>SolarAbrechnung.ch · Datenhaltung Firebase · CHF 59.– pro Liegenschaft und Jahr (geplantes Abo)</footer>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAB4BQAfRwYArWTSj8uErj5dLnMoq85qyg",
   authDomain: "solarabrechnung.firebaseapp.com",
@@ -191,383 +90,271 @@ const firebaseConfig = {
   messagingSenderId: "623287479275",
   appId: "1:623287479275:web:f453b02cc9cc27109e47ae"
 };
-  const SOLAR_API_BASE = "https://solarabrechnung-api.marco-ae87.workers.dev";
-const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app);
-const $=id=>document.getElementById(id);
-let currentUser=null, properties=[], customers=[], imports=[], pendingImport=null;
-const say=(id,msg,cls="muted")=>{$(id).className="small "+cls;$(id).textContent=msg};
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const money=n=>"CHF "+Number(n||0).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
-function showAuth(msg="",error=false){$("authMessage").textContent=msg;$("authMessage").className=error?"small alert error":"small muted"}
-async function withAuth(action){if(!currentUser)throw new Error("Bitte zuerst anmelden.");return action()}
-  async function solarApiRequest(method, body = null) {
-  if (!currentUser) {
-    throw new Error("Bitte zuerst anmelden.");
-  }
+const SOLAR_API_BASE = "https://solarabrechnung-api.marco-ae87.workers.dev";
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const $ = id => document.getElementById(id);
+let currentUser = null, properties = [], customers = [], imports = [], pendingImport = null;
+let parsedFiles = [];
 
+const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const say = (id, message, cls="muted") => { $(id).className = "small " + cls; $(id).textContent = message; };
+function showAuth(message="", error=false) { $("authMessage").textContent=message; $("authMessage").className=error?"small alert error":"small muted"; }
+function authError(e) { return ({"auth/invalid-credential":"E-Mail oder Passwort ist falsch.","auth/email-already-in-use":"Diese E-Mail-Adresse ist bereits registriert.","auth/weak-password":"Das Passwort muss mindestens 6 Zeichen haben.","auth/invalid-email":"Bitte eine gültige E-Mail-Adresse eingeben.","auth/operation-not-allowed":"E-Mail/Passwort-Anmeldung ist in Firebase noch nicht aktiviert."})[e.code] || e.message; }
+function openModal(id) { $(id).classList.remove("hidden"); }
+function closeModal(id) { $(id).classList.add("hidden"); }
+
+async function solarApiRequest(method, body=null) {
+  if (!currentUser) throw new Error("Bitte zuerst anmelden.");
   const token = await currentUser.getIdToken();
-
-  const options = {
+  const response = await fetch(SOLAR_API_BASE + "/api/solar-connection", {
     method,
-    headers: {
-      "Authorization": "Bearer " + token,
-      "Content-Type": "application/json"
-    }
-  };
-
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(
-    SOLAR_API_BASE + "/api/solar-connection",
-    options
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || "Solar-Manager-Verbindung fehlgeschlagen.");
-  }
-
+    headers: {"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+    ...(body ? {body:JSON.stringify(body)} : {})
+  });
+  const data = await response.json().catch(()=>({}));
+  if (!response.ok) throw new Error(data.error || "Solar-Manager-Verbindung fehlgeschlagen.");
   return data;
 }
-
 async function loadSolarConnection() {
   const data = await solarApiRequest("GET");
-
   $("solarGatewayId").value = data.gatewayId || "";
-
-  $("solarConnectionMessage").textContent = data.connected
-    ? "Solar-Manager-Verbindung ist gespeichert."
-    : "Noch keine Verbindung gespeichert.";
+  $("solarConnectionMessage").textContent = data.connected ? "Solar-Manager-Verbindung ist gespeichert." : "Noch keine Verbindung gespeichert.";
 }
-
 async function saveSolarConnection() {
-  const gatewayId = $("solarGatewayId").value.trim();
-  const apiKey = $("solarApiKey").value.trim();
-
-  if (!gatewayId || !apiKey) {
-    throw new Error("Bitte Gateway-ID und API-Schlüssel eingeben.");
-  }
-
-  await solarApiRequest("POST", { gatewayId, apiKey });
-
-  $("solarApiKey").value = "";
-  $("solarConnectionMessage").textContent =
-    "Verbindung sicher gespeichert.";
+  const gatewayId=$("solarGatewayId").value.trim(), apiKey=$("solarApiKey").value.trim();
+  if (!gatewayId || !apiKey) throw new Error("Bitte Gateway-ID und API-Schlüssel eingeben.");
+  await solarApiRequest("POST",{gatewayId,apiKey});
+  $("solarApiKey").value="";
+  $("solarConnectionMessage").textContent="Verbindung sicher gespeichert.";
 }
-
 async function deleteSolarConnection() {
   await solarApiRequest("DELETE");
-
-  $("solarGatewayId").value = "";
-  $("solarApiKey").value = "";
-  $("solarConnectionMessage").textContent =
-    "Solar-Manager-Verbindung gelöscht.";
-}
-async function loadAll(){
- const uid=currentUser.uid;
- const [p,c,i]=await Promise.all([
-  getDocs(query(collection(db,"properties"),where("ownerUid","==",uid))),
-  getDocs(query(collection(db,"customers"),where("ownerUid","==",uid))),
-  getDocs(query(collection(db,"imports"),where("ownerUid","==",uid)))
- ]);
- properties=p.docs.map(d=>({id:d.id,...d.data()}));customers=c.docs.map(d=>({id:d.id,...d.data()}));imports=i.docs.map(d=>({id:d.id,...d.data()}));
- renderAll();
-}
-function renderAll(){
- $("mProperties").textContent=properties.length;$("mCustomers").textContent=customers.length;$("mImports").textContent=imports.length;
-$("invoiceProperty").innerHTML =
-  properties.map(p =>
-    `<option value="${p.id}">${esc(p.name)}</option>`
-  ).join("") || '<option value="">Keine Liegenschaft</option>';
-
-if (properties.length &&
-    !properties.some(p => p.id === $("invoiceProperty").value)) {
-  $("invoiceProperty").value = properties[0].id;
+  $("solarGatewayId").value=""; $("solarApiKey").value="";
+  $("solarConnectionMessage").textContent="Solar-Manager-Verbindung gelöscht.";
 }
 
+async function loadAll() {
+  const uid=currentUser.uid;
+  const [p,c,i]=await Promise.all([
+    getDocs(query(collection(db,"properties"),where("ownerUid","==",uid))),
+    getDocs(query(collection(db,"customers"),where("ownerUid","==",uid))),
+    getDocs(query(collection(db,"imports"),where("ownerUid","==",uid)))
+  ]);
+  properties=p.docs.map(d=>({id:d.id,...d.data()}));
+  customers=c.docs.map(d=>({id:d.id,...d.data()}));
+  imports=i.docs.map(d=>({id:d.id,...d.data()}));
+  renderAll();
+}
+function periodValue(period) {
+  const m=String(period||"").match(/(\d{4}).*?Q([1-4])/i);
+  if(m) return Number(m[1])*10+Number(m[2]);
+  const d=String(period||"").match(/(\d{4})-(\d{2})/);
+  return d ? Number(d[1])*10+Math.ceil(Number(d[2])/3) : 0;
+}
 function refreshInvoicePeriod() {
-  const propertyId = $("invoiceProperty").value;
-
-  const periods = [...new Set(
-    imports
-      .filter(x =>
-        x.ownerUid === currentUser.uid &&
-        x.propertyId === propertyId
-      )
-      .map(x => x.period)
-      .filter(Boolean)
-  )];
-
-  periods.sort((a, b) => {
-    const getValue = p => {
-      const m = String(p).match(/(\d{4}).*?Q([1-4])/i);
-      return m ? Number(m[1]) * 10 + Number(m[2]) : 0;
-    };
-    return getValue(b) - getValue(a);
-  });
-
-  $("invoicePeriod").value = periods[0] || "";
-  $("invoicePeriod").placeholder = periods.length
-    ? "Automatisch erkannt"
-    : "Noch keine Messdaten für diese Liegenschaft";
+  const propertyId=$("invoiceProperty").value;
+  const periods=[...new Set(imports.filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean))];
+  periods.sort((a,b)=>periodValue(b)-periodValue(a));
+  $("invoicePeriod").value=periods[0]||"";
+  $("invoicePeriod").placeholder=periods.length?"Automatisch erkannt":"Noch keine Messdaten für diese Liegenschaft";
 }
-
-$("invoiceProperty").onchange = refreshInvoicePeriod;
-refreshInvoicePeriod();
-
-const periods = [...new Set(
-  imports
-    .filter(x => x.ownerUid === currentUser.uid)
-    .map(x => x.period)
-    .filter(Boolean)
-)];
-
-function periodSortValue(period) {
-  const match = String(period).match(/(\d{4}).*?Q([1-4])/i);
-  if (match) return Number(match[1]) * 10 + Number(match[2]);
-
-  const date = String(period).match(/(\d{4})-(\d{2})/);
-  if (date) return Number(date[1]) * 10 + Math.ceil(Number(date[2]) / 3);
-
-  return 0;
-}
-
-periods.sort((a, b) => periodSortValue(b) - periodSortValue(a));
-
-const detectedPeriod = periods[0] || "";
-
-$("invoicePeriod").value = detectedPeriod;
-$("invoicePeriod").placeholder = detectedPeriod
-  ? "Automatisch erkannt"
-  : "Noch keine Messdaten importiert";
-  
+function renderAll() {
+  $("mProperties").textContent=properties.length;
+  $("mCustomers").textContent=customers.length;
+  $("mImports").textContent=new Set(imports.map(x=>x.period).filter(Boolean)).size;
   $("setupHint").textContent=properties.length?"Deine Liegenschaften sind eingerichtet. Verwalte jetzt die Bezüger und importiere die Quartalsdaten.":"Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».";
- $("propertyList").innerHTML=properties.length?`<div class="table-wrap"><table><thead><tr><th>Liegenschaft</th><th>Adresse</th><th>Bezüger</th><th></th></tr></thead><tbody>${properties.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc([p.street,p.house,p.postal,p.city].filter(Boolean).join(" "))}</td><td>${customers.filter(c=>c.propertyId===p.id).length}</td><td><button class="btn danger" data-del-property="${p.id}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Liegenschaft erfasst.</div>';
- $("customerList").innerHTML=customers.length?`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Liegenschaft</th><th>E-Mail</th><th></th></tr></thead><tbody>${customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.meterId)}</td><td>${esc(properties.find(p=>p.id===c.propertyId)?.name||"")}</td><td>${esc(c.email||"")}</td><td><button class="btn danger" data-del-customer="${c.id}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Bezüger erfasst.</div>';
- const options=properties.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("");
- $("cProperty").innerHTML=options||'<option value="">Zuerst Liegenschaft erfassen</option>';$("tariffProperty").innerHTML=options||'<option value="">Keine Liegenschaft vorhanden</option>';
- $("invoiceList").innerHTML='<div class="empty">Noch keine Rechnungen vorhanden. Die Rechnungserstellung wird nach Einrichtung des sicheren Solar-Manager-Connectors aktiviert.</div>';
+  const propertyOptions=properties.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("") || '<option value="">Keine Liegenschaft vorhanden</option>';
+  ["invoiceProperty","tariffProperty","cProperty"].forEach(id=>$(id).innerHTML=propertyOptions);
+  if(properties.length) {
+    $("invoiceProperty").value=properties[0].id;
+    $("tariffProperty").value=properties[0].id;
+    $("cProperty").value=properties[0].id;
+  }
+  $("invoiceProperty").onchange=refreshInvoicePeriod;
+  refreshInvoicePeriod();
+
+  $("propertyList").innerHTML=properties.length?`<div class="table-wrap"><table><thead><tr><th>Liegenschaft</th><th>Adresse</th><th>Bezüger</th><th></th></tr></thead><tbody>${properties.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc([p.street,p.house,p.postal,p.city].filter(Boolean).join(" "))}</td><td>${customers.filter(c=>c.propertyId===p.id).length}</td><td><button class="btn danger" data-del-property="${esc(p.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Liegenschaft erfasst.</div>';
+  $("customerList").innerHTML=customers.length?`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Liegenschaft</th><th>E-Mail</th><th></th></tr></thead><tbody>${customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.meterId)}</td><td>${esc(properties.find(p=>p.id===c.propertyId)?.name||"")}</td><td>${esc(c.email||"")}</td><td><button class="btn danger" data-del-customer="${esc(c.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Bezüger erfasst.</div>';
+  $("invoiceList").innerHTML='<div class="empty">Noch keine definitiven Rechnungen vorhanden.</div>';
 }
-function openModal(id){$(id).classList.remove("hidden")}function closeModal(id){$(id).classList.add("hidden")}
-$("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value)}catch(e){showAuth(authError(e),true)}};
-$("registerBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,$("email").value.trim(),$("password").value)}catch(e){showAuth(authError(e),true)}};
-$("resetBtn").onclick=async()=>{try{await sendPasswordResetEmail(auth,$("email").value.trim());showAuth("E-Mail zum Zurücksetzen wurde versendet.")}catch(e){showAuth(authError(e),true)}};
+
+$("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);}catch(e){showAuth(authError(e),true);}};
+$("registerBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);}catch(e){showAuth(authError(e),true);}};
+$("resetBtn").onclick=async()=>{try{await sendPasswordResetEmail(auth,$("email").value.trim());showAuth("E-Mail zum Zurücksetzen wurde versendet.");}catch(e){showAuth(authError(e),true);}};
 $("logoutBtn").onclick=()=>signOut(auth);
-function authError(e){return ({ "auth/invalid-credential":"E-Mail oder Passwort ist falsch.","auth/email-already-in-use":"Diese E-Mail-Adresse ist bereits registriert.","auth/weak-password":"Das Passwort muss mindestens 6 Zeichen haben.","auth/invalid-email":"Bitte eine gültige E-Mail-Adresse eingeben.","auth/operation-not-allowed":"E-Mail/Passwort-Anmeldung ist in Firebase noch nicht aktiviert."})[e.code]||e.message}
+
 onAuthStateChanged(auth,async user=>{
- currentUser=user;$("loginView").classList.toggle("hidden",!!user);$("appView").classList.toggle("hidden",!user);
-if(user){
+  currentUser=user;
+  $("loginView").classList.toggle("hidden",!!user);
+  $("appView").classList.toggle("hidden",!user);
+  if(!user) return;
   $("userEmail").textContent=user.email||user.uid;
+  try { await loadAll(); } catch(e) { alert("Firebase-Daten konnten nicht geladen werden: "+e.message); }
+  try { await loadSolarConnection(); } catch(e) { $("solarConnectionMessage").textContent="Solar-Manager: "+e.message; }
+});
 
-  try {
-    await loadAll();
-  } catch(e) {
-    alert("Firebase-Daten konnten nicht geladen werden: "+e.message);
-  }
-
-  try {
-    await loadSolarConnection();
-  } catch(e) {
-    $("solarConnectionMessage").textContent =
-      "Solar-Manager: " + e.message;
-  }
-}
-$("newPropertyBtn").onclick=$("addPropertyBtn").onclick=()=>{["pName","pStreet","pHouse","pPostal","pCity"].forEach(id=>$(id).value="");$("propertyError").textContent="";openModal("propertyModal")};
-$("addCustomerBtn").onclick=()=>{if(!properties.length){alert("Bitte zuerst eine Liegenschaft erfassen.");return}["cName","cMeter","cEmail","cStreet","cHouse","cPostal","cCity"].forEach(id=>$(id).value="");$("customerError").textContent="";openModal("customerModal")};
+$("newPropertyBtn").onclick=$("addPropertyBtn").onclick=()=>{
+  ["pName","pStreet","pHouse","pPostal","pCity"].forEach(id=>$(id).value="");
+  $("propertyError").textContent=""; openModal("propertyModal");
+};
+$("addCustomerBtn").onclick=()=>{
+  if(!properties.length){alert("Bitte zuerst eine Liegenschaft erfassen.");return;}
+  ["cName","cMeter","cEmail","cStreet","cHouse","cPostal","cCity"].forEach(id=>$(id).value="");
+  $("customerError").textContent=""; openModal("customerModal");
+};
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
-$("savePropertyBtn").onclick=async()=>{try{const name=$("pName").value.trim();if(!name)throw new Error("Bitte einen Namen für die Liegenschaft eingeben.");await addDoc(collection(db,"properties"),{ownerUid:currentUser.uid,name,street:$("pStreet").value.trim(),house:$("pHouse").value.trim(),postal:$("pPostal").value.trim(),city:$("pCity").value.trim(),country:$("pCountry").value.trim()||"CH",createdAt:serverTimestamp()});closeModal("propertyModal");await loadAll()}catch(e){$("propertyError").textContent=e.message}};
-$("saveCustomerBtn").onclick=async()=>{try{const meter=$("cMeter").value.trim(),name=$("cName").value.trim(),propertyId=$("cProperty").value;if(!name||!meter||!propertyId)throw new Error("Name, Zählernummer und Liegenschaft sind Pflicht.");if(customers.some(c=>c.meterId===meter))throw new Error("Diese Zählernummer ist bereits erfasst.");await addDoc(collection(db,"customers"),{ownerUid:currentUser.uid,propertyId,name,meterId:meter,email:$("cEmail").value.trim(),street:$("cStreet").value.trim(),house:$("cHouse").value.trim(),postal:$("cPostal").value.trim(),city:$("cCity").value.trim(),createdAt:serverTimestamp()});closeModal("customerModal");await loadAll()}catch(e){$("customerError").textContent=e.message}};
+
+$("savePropertyBtn").onclick=async()=>{
+  try {
+    const name=$("pName").value.trim();
+    if(!name) throw new Error("Bitte einen Namen für die Liegenschaft eingeben.");
+    await addDoc(collection(db,"properties"),{ownerUid:currentUser.uid,name,street:$("pStreet").value.trim(),house:$("pHouse").value.trim(),postal:$("pPostal").value.trim(),city:$("pCity").value.trim(),country:$("pCountry").value.trim()||"CH",createdAt:serverTimestamp()});
+    closeModal("propertyModal"); await loadAll();
+  } catch(e) {$("propertyError").textContent=e.message;}
+};
+$("saveCustomerBtn").onclick=async()=>{
+  try {
+    const meter=$("cMeter").value.trim(),name=$("cName").value.trim(),propertyId=$("cProperty").value;
+    if(!name||!meter||!propertyId) throw new Error("Name, Zählernummer und Liegenschaft sind Pflicht.");
+    if(customers.some(c=>String(c.meterId)===meter)) throw new Error("Diese Zählernummer ist bereits erfasst.");
+    await addDoc(collection(db,"customers"),{ownerUid:currentUser.uid,propertyId,name,meterId:meter,email:$("cEmail").value.trim(),street:$("cStreet").value.trim(),house:$("cHouse").value.trim(),postal:$("cPostal").value.trim(),city:$("cCity").value.trim(),createdAt:serverTimestamp()});
+    closeModal("customerModal"); await loadAll();
+  } catch(e) {$("customerError").textContent=e.message;}
+};
 document.addEventListener("click",async e=>{
- const dp=e.target.closest("[data-del-property]");if(dp){if(!confirm("Liegenschaft wirklich löschen? Zugehörige Bezüger werden nicht automatisch gelöscht."))return;const p=properties.find(x=>x.id===dp.dataset.delProperty);if(!p||p.ownerUid!==currentUser.uid)return;await deleteDoc(doc(db,"properties",p.id));await loadAll()}
- const dc=e.target.closest("[data-del-customer]");if(dc){if(!confirm("Bezüger wirklich löschen?"))return;const c=customers.find(x=>x.id===dc.dataset.delCustomer);if(!c||c.ownerUid!==currentUser.uid)return;await deleteDoc(doc(db,"customers",c.id));await loadAll()}
+  const dp=e.target.closest("[data-del-property]");
+  if(dp) {
+    if(!confirm("Liegenschaft wirklich löschen? Zugehörige Bezüger und Importe werden nicht automatisch gelöscht.")) return;
+    const p=properties.find(x=>x.id===dp.dataset.delProperty);
+    if(!p) return;
+    try {await deleteDoc(doc(db,"properties",p.id));await loadAll();} catch(err){alert(err.message);}
+  }
+  const dc=e.target.closest("[data-del-customer]");
+  if(dc) {
+    if(!confirm("Bezüger wirklich löschen?")) return;
+    const c=customers.find(x=>x.id===dc.dataset.delCustomer);
+    if(!c) return;
+    try {await deleteDoc(doc(db,"customers",c.id));await loadAll();} catch(err){alert(err.message);}
+  }
 });
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===b));document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="panel-"+b.dataset.tab))});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===b));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="panel-"+b.dataset.tab));
+});
 
-  $("saveSolarConnectionBtn").onclick = async () => {
-  try {
-    await saveSolarConnection();
-  } catch (e) {
-    $("solarConnectionMessage").textContent = e.message;
+$("saveSolarConnectionBtn").onclick=async()=>{try{await saveSolarConnection();}catch(e){$("solarConnectionMessage").textContent=e.message;}};
+$("deleteSolarConnectionBtn").onclick=async()=>{if(!confirm("Solar-Manager-Verbindung wirklich löschen?"))return;try{await deleteSolarConnection();}catch(e){$("solarConnectionMessage").textContent=e.message;}};
+
+async function loadTariff(propertyId) {
+  if(!propertyId) return;
+  const snap=await getDoc(doc(db,"tariffs",propertyId));
+  if(snap.exists()) {
+    const t=snap.data();
+    $("gridRp").value=t.gridRp??0; $("solarRp").value=t.solarRp??0;
+    $("reductionMode").value=t.reductionMode??"percent"; $("reductionValue").value=t.reductionValue??0;
+  } else {
+    $("gridRp").value=0; $("solarRp").value=0; $("reductionMode").value="percent"; $("reductionValue").value=0;
   }
-};
-
-$("deleteSolarConnectionBtn").onclick = async () => {
-  if (!confirm("Solar-Manager-Verbindung wirklich löschen?")) return;
-
-  try {
-    await deleteSolarConnection();
-  } catch (e) {
-    $("solarConnectionMessage").textContent = e.message;
-  }
-};
-  $("saveTariffBtn").onclick=async()=>{try{const propertyId=$("tariffProperty").value;if(!propertyId)throw new Error("Bitte zuerst eine Liegenschaft auswählen.");const p=properties.find(x=>x.id===propertyId);if(!p||p.ownerUid!==currentUser.uid)throw new Error("Ungültige Liegenschaft.");const data={ownerUid:currentUser.uid,propertyId,gridRp:Number($("gridRp").value),solarRp:Number($("solarRp").value),reductionMode:$("reductionMode").value,reductionValue:Number($("reductionValue").value),updatedAt:serverTimestamp()};await setDoc(doc(db,"tariffs",propertyId),data);say("tariffMessage","Tarife gespeichert.","ok")}catch(e){say("tariffMessage",e.message,"error")}};
-$("tariffProperty").onchange=async()=>{const id=$("tariffProperty").value;if(!id)return;const {getDoc}=await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js");const s=await getDoc(doc(db,"tariffs",id));if(s.exists()){const t=s.data();$("gridRp").value=t.gridRp??0;$("solarRp").value=t.solarRp??0;$("reductionMode").value=t.reductionMode??"percent";$("reductionValue").value=t.reductionValue??0}else{$("gridRp").value=0;$("solarRp").value=0;$("reductionMode").value="percent";$("reductionValue").value=0}};
-let parsedFiles=[];
-function parseSwissDateRange(v){const m=String(v||"").match(/(\d{2}\.\d{2}\.\d{4}).*?(\d{2}\.\d{2}\.\d{4})/);if(!m)throw new Error("Zeitraum in B3 nicht lesbar: "+v);const parse=s=>{const [d,mo,y]=s.split(".").map(Number);return new Date(Date.UTC(y,mo-1,d))};return [parse(m[1]),parse(m[2])]}
-function quarterOf(d){return `${d.getUTCFullYear()} Q${Math.floor(d.getUTCMonth()/3)+1}`}
-function parseNum(v){if(typeof v==="number")return v;let s=String(v??"").trim().replace(/[\s']/g,"");if(s.includes(",")&&s.includes(".")){s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"")}else s=s.replace(",",".");const n=Number(s);if(!Number.isFinite(n))throw new Error("Ungültiger Zahlenwert: "+v);return n}
-$("inspectFilesBtn").onclick=async()=>{
- try{
-  const selected=[...$("excelFiles").files];if(!selected.length)throw new Error("Bitte zuerst Excel-Dateien auswählen.");
-  if(!customers.length)throw new Error("Bitte zuerst die Bezüger und Zähler erfassen.");
-  if(!window.XLSX)throw new Error("Excel-Bibliothek konnte nicht geladen werden. Bitte Seite neu laden.");
-  const result=[];
-  for(const f of selected){
-   const wb=XLSX.read(await f.arrayBuffer(),{type:"array",cellDates:false});
-   let ws=wb.SheetNames.map(n=>wb.Sheets[n]).find(s=>String(s.B2?.v??"").match(/\d{5,}/)&&s.B3?.v);
-   if(!ws)throw new Error(f.name+": Smart-me-Blatt mit Zähler in B2 und Zeitraum in B3 fehlt.");
-   const meter=(String(ws.B2.v).match(/\d{5,}/)||[])[0];const customer=customers.find(c=>c.meterId===meter);
-   if(!customer)throw new Error("Zähler "+meter+" ist noch keinem Bezüger zugeordnet ("+f.name+").");
-   const [start,end]=parseSwissDateRange(ws.B3.v);const q=quarterOf(start);
-   const last=new Date(Date.UTC(start.getUTCFullYear(),Math.floor(start.getUTCMonth()/3)*3+3,0));
-   if(start.getUTCDate()!==1||start.getTime()!==Date.UTC(start.getUTCFullYear(),Math.floor(start.getUTCMonth()/3)*3,1)||end.getTime()!==last.getTime())throw new Error("Exportzeitraum "+start.toISOString().slice(0,10)+" bis "+end.toISOString().slice(0,10)+" ist kein volles Kalenderquartal.");
-   let kwh=null;for(let r=1;r<200;r++){const label=String(ws["A"+r]?.v??"").trim().toLowerCase();if(["import total","bezug total"].includes(label)){kwh=parseNum(ws["E"+r]?.v);break}}
-   if(kwh===null)throw new Error("Gesamtbezug in Spalte E fehlt: "+f.name);
-   result.push({fileName:f.name,meterId:meter,customerId:customer.id,customerName:customer.name,propertyId:customer.propertyId,start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10),period:q,kwh});
-  }
-  const periods=[...new Set(result.map(x=>x.period))];if(periods.length!==1)throw new Error("Die ausgewählten Dateien enthalten unterschiedliche Quartale.");
-  if(new Set(result.map(x=>x.meterId)).size!==result.length)throw new Error("Ein Smart-me-Zähler wurde mehrfach ausgewählt.");
-  parsedFiles=result;pendingImport={period:periods[0],rows:result};$("saveImportBtn").disabled=false;
-  $("importMessage").textContent=`${result.length} Datei(en) geprüft · ${periods[0]} · ${result.reduce((a,x)=>a+x.kwh,0).toLocaleString("de-CH",{maximumFractionDigits:2})} kWh Gesamtbezug`;
-  $("importPreview").innerHTML=`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Zeitraum</th><th>Bezug</th><th>Datei</th></tr></thead><tbody>${result.map(x=>`<tr><td>${esc(x.customerName)}</td><td>${esc(x.meterId)}</td><td>${esc(x.start)} – ${esc(x.end)}</td><td>${x.kwh.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</td><td>${esc(x.fileName)}</td></tr>`).join("")}</tbody></table></div>`;
- }catch(e){parsedFiles=[];pendingImport=null;$("saveImportBtn").disabled=true;$("importMessage").textContent=e.message;$("importMessage").className="small alert error"}
-};
-
-function invoiceMoney(value) {
-  return Number(value || 0).toLocaleString("de-CH", {
-    style: "currency",
-    currency: "CHF"
-  });
 }
-
-$("createInvoiceBtn").onclick = async () => {
+$("tariffProperty").onchange=async()=>{try{await loadTariff($("tariffProperty").value);}catch(e){say("tariffMessage",e.message,"error");}};
+$("saveTariffBtn").onclick=async()=>{
   try {
-    const propertyId = $("invoiceProperty").value || properties[0]?.id || "";
-const period = $("invoicePeriod").value || imports
-  .filter(x => x.ownerUid === currentUser.uid)
-  .map(x => x.period)
-  .filter(Boolean)
-  .sort()
-  .reverse()[0] || "";
+    const propertyId=$("tariffProperty").value;
+    if(!propertyId) throw new Error("Bitte zuerst eine Liegenschaft auswählen.");
+    const data={ownerUid:currentUser.uid,propertyId,gridRp:Number($("gridRp").value),solarRp:Number($("solarRp").value),reductionMode:$("reductionMode").value,reductionValue:Number($("reductionValue").value),updatedAt:serverTimestamp()};
+    if([data.gridRp,data.solarRp,data.reductionValue].some(n=>!Number.isFinite(n)||n<0)) throw new Error("Bitte gültige, nicht negative Tarifwerte eingeben.");
+    await setDoc(doc(db,"tariffs",propertyId),data);
+    say("tariffMessage","Tarife gespeichert.","ok");
+  } catch(e) {say("tariffMessage",e.message,"error");}
+};
 
-    if (!propertyId || !period) {
-      throw new Error("Bitte Liegenschaft und Quartal auswählen.");
+function parseSwissDateRange(value) {
+  const m=String(value||"").match(/(\d{2}\.\d{2}\.\d{4}).*?(\d{2}\.\d{2}\.\d{4})/);
+  if(!m) throw new Error("Zeitraum in B3 nicht lesbar: "+value);
+  const parse=s=>{const [d,mo,y]=s.split(".").map(Number);return new Date(Date.UTC(y,mo-1,d));};
+  return [parse(m[1]),parse(m[2])];
+}
+function quarterOf(d) {return `${d.getUTCFullYear()} Q${Math.floor(d.getUTCMonth()/3)+1}`;}
+function parseNum(v) {
+  if(typeof v==="number") return v;
+  let s=String(v??"").trim().replace(/[\s']/g,"");
+  if(s.includes(",")&&s.includes(".")) s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
+  else s=s.replace(",",".");
+  const n=Number(s); if(!Number.isFinite(n)) throw new Error("Ungültiger Zahlenwert: "+v); return n;
+}
+$("inspectFilesBtn").onclick=async()=>{
+  try {
+    const selected=[...$("excelFiles").files];
+    if(!selected.length) throw new Error("Bitte zuerst Excel-Dateien auswählen.");
+    if(!customers.length) throw new Error("Bitte zuerst die Bezüger und Zähler erfassen.");
+    if(!window.XLSX) throw new Error("Excel-Bibliothek konnte nicht geladen werden. Bitte Seite neu laden.");
+    const result=[];
+    for(const f of selected) {
+      const wb=XLSX.read(await f.arrayBuffer(),{type:"array",cellDates:false});
+      const ws=wb.SheetNames.map(n=>wb.Sheets[n]).find(s=>String(s.B2?.v??"").match(/\d{5,}/)&&s.B3?.v);
+      if(!ws) throw new Error(f.name+": Smart-me-Blatt mit Zähler in B2 und Zeitraum in B3 fehlt.");
+      const meter=(String(ws.B2.v).match(/\d{5,}/)||[])[0];
+      const customer=customers.find(c=>String(c.meterId)===meter);
+      if(!customer) throw new Error("Zähler "+meter+" ist noch keinem Bezüger zugeordnet ("+f.name+").");
+      const [start,end]=parseSwissDateRange(ws.B3.v);
+      const q=quarterOf(start);
+      const quarterStart=new Date(Date.UTC(start.getUTCFullYear(),Math.floor(start.getUTCMonth()/3)*3,1));
+      const quarterEnd=new Date(Date.UTC(start.getUTCFullYear(),Math.floor(start.getUTCMonth()/3)*3+3,0));
+      if(start.getTime()!==quarterStart.getTime()||end.getTime()!==quarterEnd.getTime()) throw new Error("Exportzeitraum "+start.toISOString().slice(0,10)+" bis "+end.toISOString().slice(0,10)+" ist kein volles Kalenderquartal.");
+      let kwh=null;
+      for(let r=1;r<200;r++){const label=String(ws["A"+r]?.v??"").trim().toLowerCase();if(["import total","bezug total"].includes(label)){kwh=parseNum(ws["E"+r]?.v);break;}}
+      if(kwh===null) throw new Error("Gesamtbezug in Spalte E fehlt: "+f.name);
+      result.push({fileName:f.name,meterId:meter,customerId:customer.id,customerName:customer.name,propertyId:customer.propertyId,start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10),period:q,kwh});
     }
-
-    const property = properties.find(p => p.id === propertyId);
-    if (!property) throw new Error("Liegenschaft nicht gefunden.");
-
-    const importSnap = await getDocs(query(
-      collection(db, "imports"),
-      where("ownerUid", "==", currentUser.uid),
-      where("propertyId", "==", propertyId),
-      where("period", "==", period)
-    ));
-
-    if (importSnap.empty) {
-      throw new Error("Keine Messdaten für dieses Quartal gefunden.");
-    }
-
-    const tariffSnap = await getDoc(doc(db, "tariffs", propertyId));
-    if (!tariffSnap.exists()) {
-      throw new Error("Bitte zuerst die Tarife speichern.");
-    }
-
-    const tariff = tariffSnap.data();
-    const rows = importSnap.docs.flatMap(d => d.data().rows || []);
-
-    const invoices = rows.map(row => {
-      const customer = customers.find(c =>
-        c.propertyId === propertyId &&
-        String(c.meterId) === String(row.meterId)
-      );
-
-      if (!customer) {
-        throw new Error("Kein Bezüger für Zähler " + row.meterId);
-      }
-
-      const kwh = Number(row.kwh || 0);
-      const amount = kwh * Number(tariff.gridRp || 0) / 100;
-
-      let total = amount;
-      if (tariff.reductionMode === "percent") {
-        total *= 1 - Number(tariff.reductionValue || 0) / 100;
-      } else {
-        total -= Number(tariff.reductionValue || 0);
-      }
-
-      return {
-        customer,
-        row,
-        kwh,
-        total: Math.max(0, total)
-      };
-    });
-
-    $("invoicePreview").innerHTML = `
-      <h3>Rechnungsvorschau · ${esc(period)}</h3>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Bezüger</th><th>Verbrauch</th><th>Betrag</th></tr></thead>
-        <tbody>${invoices.map(x => `
-          <tr>
-            <td>${esc(x.customer.name)}</td>
-            <td>${x.kwh.toLocaleString("de-CH")} kWh</td>
-            <td>${invoiceMoney(x.total)}</td>
-          </tr>`).join("")}
-        </tbody>
-      </table></div>
-      <button class="btn" id="printInvoicesBtn">Rechnungen drucken / als PDF speichern</button>
-    `;
-
-    $("printInvoicesBtn").onclick = () => {
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        alert("Bitte Pop-ups für diese Seite erlauben.");
-        return;
-      }
-
-      printWindow.document.write(`
-        <html><head><title>Solarabrechnungen ${esc(period)}</title>
-        <style>
-          body{font-family:Arial,sans-serif;padding:30px;color:#222}
-          table{width:100%;border-collapse:collapse;margin-top:20px}
-          th,td{padding:10px;border-bottom:1px solid #ccc;text-align:left}
-          .invoice{page-break-after:always;padding-bottom:30px}
-          h1{color:#245b38}
-        </style></head><body>
-        ${invoices.map(x => `
-          <div class="invoice">
-            <h1>Stromabrechnung</h1>
-            <h2>${esc(x.customer.name)}</h2>
-            <p>${esc(property.name)} · ${esc(period)}</p>
-            <p>Zähler: ${esc(x.row.meterId)}</p>
-            <table>
-              <tr><th>Verbrauch</th><td>${x.kwh.toLocaleString("de-CH")} kWh</td></tr>
-              <tr><th>Netzstromtarif</th><td>${Number(tariff.gridRp).toFixed(2)} Rp./kWh</td></tr>
-              <tr><th>Betrag</th><td><b>${invoiceMoney(x.total)}</b></td></tr>
-            </table>
-          </div>`).join("")}
-        </body></html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    };
-
-    $("invoiceMessage").textContent =
-      invoices.length + " Rechnung(en) vorbereitet.";
-    $("invoiceMessage").style.display = "block";
-
-  } catch (e) {
-    $("invoiceMessage").textContent = e.message;
-    $("invoiceMessage").style.display = "block";
+    const periods=[...new Set(result.map(x=>x.period))];
+    if(periods.length!==1) throw new Error("Die ausgewählten Dateien enthalten unterschiedliche Quartale.");
+    if(new Set(result.map(x=>x.meterId)).size!==result.length) throw new Error("Ein Smart-me-Zähler wurde mehrfach ausgewählt.");
+    parsedFiles=result; pendingImport={period:periods[0],rows:result}; $("saveImportBtn").disabled=false;
+    $("importMessage").textContent=`${result.length} Datei(en) geprüft · ${periods[0]} · ${result.reduce((a,x)=>a+x.kwh,0).toLocaleString("de-CH",{maximumFractionDigits:2})} kWh Gesamtbezug`;
+    $("importPreview").innerHTML=`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Zeitraum</th><th>Bezug</th><th>Datei</th></tr></thead><tbody>${result.map(x=>`<tr><td>${esc(x.customerName)}</td><td>${esc(x.meterId)}</td><td>${esc(x.start)} – ${esc(x.end)}</td><td>${x.kwh.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</td><td>${esc(x.fileName)}</td></tr>`).join("")}</tbody></table></div>`;
+  } catch(e) {
+    parsedFiles=[]; pendingImport=null; $("saveImportBtn").disabled=true;
+    $("importMessage").textContent=e.message; $("importMessage").className="small alert error";
   }
 };
-  
-$("saveImportBtn").onclick=async()=>{try{if(!pendingImport)throw new Error("Bitte zuerst Dateien prüfen.");const propIds=[...new Set(pendingImport.rows.map(x=>x.propertyId))];for(const propertyId of propIds){const rows=pendingImport.rows.filter(x=>x.propertyId===propertyId);await addDoc(collection(db,"imports"),{ownerUid:currentUser.uid,propertyId,period:pendingImport.period,rows,smartmeTotalKwh:rows.reduce((a,x)=>a+x.kwh,0),status:"checked-awaiting-solar-manager",createdAt:serverTimestamp()})}say("importMessage","Geprüfte Messwerte wurden in Firebase gespeichert.","ok");$("saveImportBtn").disabled=true;pendingImport=null;await loadAll()}catch(e){say("importMessage",e.message,"error")}};
-});
-                   </script>
+$("saveImportBtn").onclick=async()=>{
+  try {
+    if(!pendingImport) throw new Error("Bitte zuerst Dateien prüfen.");
+    const propIds=[...new Set(pendingImport.rows.map(x=>x.propertyId))];
+    for(const propertyId of propIds) {
+      const rows=pendingImport.rows.filter(x=>x.propertyId===propertyId);
+      await addDoc(collection(db,"imports"),{ownerUid:currentUser.uid,propertyId,period:pendingImport.period,rows,smartmeTotalKwh:rows.reduce((a,x)=>a+x.kwh,0),status:"checked-awaiting-solar-manager",createdAt:serverTimestamp()});
+    }
+    say("importMessage","Geprüfte Messwerte wurden in Firebase gespeichert.","ok");
+    $("saveImportBtn").disabled=true; pendingImport=null; await loadAll();
+  } catch(e) {say("importMessage",e.message,"error");}
+};
+
+$("createInvoiceBtn").onclick=async()=>{
+  $("invoicePreview").innerHTML="";
+  try {
+    const propertyId=$("invoiceProperty").value, period=$("invoicePeriod").value;
+    if(!propertyId||!period) throw new Error("Für diese Liegenschaft wurden noch keine Messdaten importiert.");
+    const snap=await getDocs(query(collection(db,"imports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)));
+    if(snap.empty) throw new Error("Keine Messdaten für dieses Quartal gefunden.");
+    const tariffSnap=await getDoc(doc(db,"tariffs",propertyId));
+    if(!tariffSnap.exists()) throw new Error("Bitte zuerst die Tarife speichern.");
+    const tariff=tariffSnap.data();
+    const rows=snap.docs.flatMap(d=>d.data().rows||[]);
+    const missing=rows.filter(row=>!customers.some(c=>c.propertyId===propertyId&&String(c.meterId)===String(row.meterId)));
+    if(missing.length) throw new Error("Für Zähler "+missing[0].meterId+" wurde kein Bezüger gefunden.");
+    const totalKwh=rows.reduce((sum,row)=>sum+Number(row.kwh||0),0);
+    $("invoiceMessage").className="alert";
+    $("invoiceMessage").textContent="Messdaten und Tarife sind vorhanden. Die definitive Rechnung ist noch gesperrt: Die Solar-Manager-Aufteilung in Solarstrom und Netzstrom muss zuerst abgerufen und geprüft werden. Es wird bewusst kein falscher Rechnungsbetrag berechnet.";
+    $("invoiceMessage").style.display="block";
+    $("invoicePreview").innerHTML=`<div class="card" style="margin-top:12px"><h3>Prüfübersicht · ${esc(period)}</h3><p class="small muted">Liegenschaft: ${esc(properties.find(p=>p.id===propertyId)?.name||"")}</p><p><b>${rows.length}</b> Zählerdatei(en) · <b>${totalKwh.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</b> gemeldeter Gesamtbezug</p><p class="small muted">Hinterlegte Tarife: Netzstrom ${Number(tariff.gridRp||0).toFixed(2)} Rp./kWh · Solarstrom ${Number(tariff.solarRp||0).toFixed(2)} Rp./kWh</p><p class="small muted">Dies ist eine Datenprüfung, keine Rechnung und kein Zahlungsbeleg.</p></div>`;
+  } catch(e) {
+    $("invoiceMessage").className="alert error"; $("invoiceMessage").textContent=e.message; $("invoiceMessage").style.display="block";
+  }
+};
+</script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-</body></html>
+</body>
+</html>
