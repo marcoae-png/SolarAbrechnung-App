@@ -818,7 +818,7 @@ function renderInvoiceRegister(){
   const periods=[...new Set(invoices.map(x=>x.period))].sort((a,b)=>periodValue(b)-periodValue(a));
   el.innerHTML=periods.map(per=>{
     const list=invoices.filter(x=>x.period===per).sort((a,b)=>String(a.invoiceNo).localeCompare(String(b.invoiceNo)));
-    return `<div class="sec-title">${esc(per)}</div><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Liegenschaft</th><th>Betrag</th><th></th></tr></thead><tbody>${list.map(x=>`<tr><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(x.customerName||x.data?.customer?.name||"")}</td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td style="white-space:nowrap"><button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div><div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button></div>`;
+    return `<div class="sec-title">${esc(per)}</div><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Liegenschaft</th><th>Betrag</th><th></th></tr></thead><tbody>${list.map(x=>`<tr><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(x.customerName||x.data?.customer?.name||"")}</td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td style="white-space:nowrap"><button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div><div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button><button class="btn danger" data-del-period="${esc(per)}">Quartal ${esc(per)} löschen</button></div>`;
   }).join("");
 }
 document.addEventListener("click",async e=>{
@@ -826,6 +826,15 @@ document.addEventListener("click",async e=>{
   if(o){const x=invoices.find(i=>i.id===o.dataset.openInvoice);if(x?.data)showInvoices([x.data],"Rechnung "+x.invoiceNo);return;}
   const pr=e.target.closest("[data-open-period]");
   if(pr){const list=invoices.filter(i=>i.period===pr.dataset.openPeriod&&i.data).sort((a,b)=>String(a.invoiceNo).localeCompare(String(b.invoiceNo)));if(list.length)showInvoices(list.map(i=>i.data),"Rechnungen "+pr.dataset.openPeriod);return;}
+  const em=e.target.closest("[data-mail-invoice]");
+  if(em){const x=invoices.find(i=>i.id===em.dataset.mailInvoice);if(x?.data)mailInvoice(x.data);return;}
+  const dper=e.target.closest("[data-del-period]");
+  if(dper){
+    const list=invoices.filter(i=>i.period===dper.dataset.delPeriod); if(!list.length) return;
+    if(!confirm("Alle "+list.length+" Rechnungen von "+dper.dataset.delPeriod+" wirklich aus dem Register löschen?")) return;
+    try{for(const x of list) await deleteDoc(doc(db,"invoices",x.id));await loadAll();}catch(err){alert(err.message);}
+    return;
+  }
   const del=e.target.closest("[data-del-invoice]");
   if(del){
     const x=invoices.find(i=>i.id===del.dataset.delInvoice); if(!x) return;
@@ -833,6 +842,14 @@ document.addEventListener("click",async e=>{
     try{await deleteDoc(doc(db,"invoices",x.id));await loadAll();}catch(err){alert(err.message);}
   }
 });
+
+function mailInvoice(inv){
+  const d=inv.customer,c=inv.creditor;
+  const subject=`Stromabrechnung ${inv.periodLabel} – Rechnung ${inv.invoiceNo}`;
+  const body=[`Guten Tag ${d.name}`,"",`Anbei erhalten Sie die Abrechnung für den Solarstrom im Zeitraum ${isoToCh(inv.periodStart)} – ${isoToCh(inv.periodEnd)}.`,"",`Rechnungsnummer: ${inv.invoiceNo}`,`Betrag: ${chf(inv.total)}`,`Zahlbar bis: ${isoToCh(inv.dueDate)}`,`IBAN: ${fmtIban(inv.iban)}`,`Referenz: ${inv.referenceDisplay}`,"","Die Rechnung mit QR-Zahlteil finden Sie im Anhang.","","Freundliche Grüsse",c.name,[c.email,c.phone].filter(Boolean).join(" · ")].join("\r\n");
+  showInvoices([inv],"Rechnung "+inv.invoiceNo+" – als PDF speichern und an die E-Mail anhängen");
+  window.open("mailto:"+encodeURIComponent(d.email||"")+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body),"_self");
+}
 
 /* ---- Rechnungen erstellen ---- */
 $("createInvoiceBtn").onclick=async()=>{
