@@ -323,6 +323,29 @@ function populateSolarDashboard() {
   if(periods.includes(previous)) $("solarDashPeriod").value=previous;
   else if(periods.length) $("solarDashPeriod").value=periods[0];
 }
+const solarCacheKey=(pid,per)=>`solarDash:${currentUser?.uid||""}:${pid}:${per}`;
+function saveSolarCache(pid,per,snap){
+  try{localStorage.setItem(solarCacheKey(pid,per),JSON.stringify(snap));}catch(_){}
+}
+function restoreSolarDashboard(){
+  const pid=$("solarDashProperty").value, per=$("solarDashPeriod").value;
+  let snap=null;
+  try{snap=JSON.parse(localStorage.getItem(solarCacheKey(pid,per))||"null");}catch(_){}
+  if(!snap){
+    ["sdProduction","sdSelfUse","sdAutarky","sdSelfRate"].forEach(id=>$(id).textContent="–");
+    $("solarCustomerEstimate").innerHTML='<div class="empty">Zeitraum auswählen und Solarwerte laden.</div>';
+    $("solarDashMessage").className="alert";
+    $("solarDashMessage").textContent="Wähle eine Liegenschaft und einen importierten Zeitraum.";
+    return;
+  }
+  $("sdProduction").textContent=fmtKwh(snap.production);
+  $("sdSelfUse").textContent=fmtKwh(snap.selfUse);
+  $("sdAutarky").textContent=fmtPct(snap.autarky);
+  $("sdSelfRate").textContent=fmtPct(snap.selfRate);
+  $("solarCustomerEstimate").innerHTML=snap.estimateHtml;
+  $("solarDashMessage").className="alert ok";
+  $("solarDashMessage").textContent=`Gespeicherte Werte vom ${new Date(snap.savedAt).toLocaleString("de-CH")} · «Solarwerte laden» aktualisiert sie. `+snap.messageText;
+}
 async function loadSolarDashboard() {
   const propertyId=$("solarDashProperty").value, period=$("solarDashPeriod").value;
   if(!propertyId||!period) throw new Error("Für diese Liegenschaft ist kein Smart-me-Quartal importiert.");
@@ -364,6 +387,12 @@ async function loadSolarDashboard() {
   note+="Die Ersparnis ist eine Schätzung und keine individuelle Messung.";
   $("solarDashMessage").className="alert ok";
   $("solarDashMessage").textContent=`Daten erfolgreich geladen · ${period} · Schätzwert Solarstromanteil pro Bezüger: ${fmtPct(allocationRate*100)}. ${note}`;
+  saveSolarCache(propertyId,period,{
+    production,selfUse,autarky,selfRate,
+    estimateHtml:$("solarCustomerEstimate").innerHTML,
+    messageText:`${period} · Schätzwert Solarstromanteil pro Bezüger: ${fmtPct(allocationRate*100)}. ${note}`,
+    savedAt:Date.now()
+  });
 }
 
 async function loadSolarConnection() {
@@ -431,8 +460,9 @@ function renderAll() {
     $("cProperty").value=properties[0].id;
   }
   $("invoiceProperty").onchange=refreshInvoicePeriod;
-  $("solarDashProperty").onchange=()=>{populateSolarDashboard();$("solarCustomerEstimate").innerHTML='<div class="empty">Zeitraum auswählen und Solarwerte laden.</div>';};
+  $("solarDashProperty").onchange=()=>{populateSolarDashboard();restoreSolarDashboard();};
   populateSolarDashboard();
+  restoreSolarDashboard();
   refreshInvoicePeriod();
 
   $("propertyList").innerHTML=properties.length?`<div class="table-wrap"><table><thead><tr><th>Liegenschaft</th><th>Adresse</th><th>Bezüger</th><th></th></tr></thead><tbody>${properties.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc([p.street,p.house,p.postal,p.city].filter(Boolean).join(" "))}</td><td>${customers.filter(c=>c.propertyId===p.id).length}</td><td><button class="btn danger" data-del-property="${esc(p.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Liegenschaft erfasst.</div>';
@@ -446,12 +476,33 @@ $("registerBtn").onclick=async()=>{try{await createUserWithEmailAndPassword(auth
 $("resetBtn").onclick=async()=>{try{await sendPasswordResetEmail(auth,$("email").value.trim());showAuth("E-Mail zum Zurücksetzen wurde versendet.");}catch(e){showAuth(authError(e),true);}};
 $("logoutBtn").onclick=()=>signOut(auth);
 
+const TRIAL_DAYS=30;
+async function trialStatus(user){
+  // Freigeschaltete Kunden: Dokument licenses/{uid} mit active:true (manuell in der Firebase-Konsole)
+  try{
+    const s=await getDoc(doc(db,"licenses",user.uid));
+    if(s.exists()&&s.data().active===true) return {ok:true,paid:true};
+  }catch(_){}
+  const start=new Date(user.metadata.creationTime).getTime();
+  const left=Math.ceil((start+TRIAL_DAYS*86400000-Date.now())/86400000);
+  return {ok:left>0,paid:false,left};
+}
+
 onAuthStateChanged(auth,async user=>{
+  if(user){
+    const t=await trialStatus(user);
+    if(!t.ok){
+      await signOut(auth);
+      showAuth("Die 30-tägige Testphase ist abgelaufen. Bitte melde dich bei marco.aebersold@bluewin.ch, um dein Konto freizuschalten.",true);
+      return;
+    }
+    user._trialLeft=t.paid?null:t.left;
+  }
   currentUser=user;
   $("loginView").classList.toggle("hidden",!!user);
   $("appView").classList.toggle("hidden",!user);
   if(!user) return;
-  $("userEmail").textContent=user.email||user.uid;
+  $("userEmail").textContent=(user.email||user.uid)+(user._trialLeft!=null?` · Testphase: noch ${user._trialLeft} Tage`:"");
   try { await loadAll(); } catch(e) { alert("Firebase-Daten konnten nicht geladen werden: "+e.message); }
   try { await loadSolarConnection(); } catch(e) { $("solarConnectionMessage").textContent="Solar-Manager: "+e.message; }
 });
@@ -506,7 +557,7 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
 });
 
 $("refreshSolarDashboardBtn").onclick=async()=>{try{await loadSolarDashboard();}catch(e){$("solarDashMessage").className="alert error";$("solarDashMessage").textContent=e.message;}};
-$("solarDashPeriod").onchange=()=>{$("solarCustomerEstimate").innerHTML='<div class="empty">Zeitraum ausgewählt. Bitte Solarwerte laden.</div>';};
+$("solarDashPeriod").onchange=restoreSolarDashboard;
 $("saveSolarConnectionBtn").onclick=async()=>{try{await saveSolarConnection();}catch(e){$("solarConnectionMessage").textContent=e.message;}};
 $("deleteSolarConnectionBtn").onclick=async()=>{if(!confirm("Solar-Manager-Verbindung wirklich löschen?"))return;try{await deleteSolarConnection();}catch(e){$("solarConnectionMessage").textContent=e.message;}};
 
@@ -843,12 +894,85 @@ document.addEventListener("click",async e=>{
   }
 });
 
-function mailInvoice(inv){
-  const d=inv.customer,c=inv.creditor;
-  const subject=`Stromabrechnung ${inv.periodLabel} – Rechnung ${inv.invoiceNo}`;
-  const body=[`Guten Tag ${d.name}`,"",`Anbei erhalten Sie die Abrechnung für den Solarstrom im Zeitraum ${isoToCh(inv.periodStart)} – ${isoToCh(inv.periodEnd)}.`,"",`Rechnungsnummer: ${inv.invoiceNo}`,`Betrag: ${chf(inv.total)}`,`Zahlbar bis: ${isoToCh(inv.dueDate)}`,`IBAN: ${fmtIban(inv.iban)}`,`Referenz: ${inv.referenceDisplay}`,"","Die Rechnung mit QR-Zahlteil finden Sie im Anhang.","","Freundliche Grüsse",c.name,[c.email,c.phone].filter(Boolean).join(" · ")].join("\r\n");
-  showInvoices([inv],"Rechnung "+inv.invoiceNo+" – als PDF speichern und an die E-Mail anhängen");
-  window.open("mailto:"+encodeURIComponent(d.email||"")+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body),"_self");
+/* ---- PDF + E-Mail mit Anhang ---- */
+async function invoicePdfBlob(inv){
+  if(!window.html2canvas||!window.jspdf) throw new Error("PDF-Bibliotheken konnten nicht geladen werden. Bitte Seite neu laden.");
+  const fr=document.createElement("iframe");
+  fr.style.cssText="position:fixed;left:-10000px;top:0;width:900px;height:1250px;border:0";
+  document.body.appendChild(fr);
+  try{
+    await new Promise(res=>{fr.onload=res;fr.srcdoc=invoicesDocument([inv]);});
+    try{await fr.contentDocument.fonts.ready;}catch(_){}
+    const page=fr.contentDocument.querySelector(".page");
+    const canvas=await html2canvas(page,{scale:2,backgroundColor:"#ffffff",useCORS:true});
+    const pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
+    pdf.addImage(canvas.toDataURL("image/jpeg",0.92),"JPEG",0,0,210,297);
+    return pdf.output("blob");
+  } finally { fr.remove(); }
+}
+async function blobToBase64(blob){
+  const buf=new Uint8Array(await blob.arrayBuffer());let s="";
+  for(let i=0;i<buf.length;i+=0x8000) s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));
+  return btoa(s);
+}
+const wrap76=s=>s.replace(/(.{76})/g,"$1\r\n");
+const b64utf8=s=>btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+function downloadBlob(blob,name){
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+async function mailInvoice(inv){
+  const info=(t,cls="")=>{const el=$("invoiceMessage");el.className=("alert "+cls).trim();el.textContent=t;el.style.display="block";};
+  try{
+    info("PDF wird erstellt …");
+    const cur=customers.find(c=>c.id===inv.customerId);
+    const to=(cur?.email||inv.customer.email||"").trim();
+    const d=inv.customer,c=inv.creditor;
+    const subject=`Stromabrechnung ${inv.periodLabel} – Rechnung ${inv.invoiceNo}`;
+    const text=[`Guten Tag ${d.name}`,"",`Anbei erhalten Sie die Abrechnung für den Solarstrom im Zeitraum ${isoToCh(inv.periodStart)} – ${isoToCh(inv.periodEnd)}.`,"",`Rechnungsnummer: ${inv.invoiceNo}`,`Betrag: ${chf(inv.total)}`,`Zahlbar bis: ${isoToCh(inv.dueDate)}`,`IBAN: ${fmtIban(inv.iban)}`,`Referenz: ${inv.referenceDisplay}`,"","Die Rechnung mit QR-Zahlteil finden Sie im Anhang.","","Freundliche Grüsse",c.name,[c.email,c.phone].filter(Boolean).join(" · ")].join("\r\n");
+    const fileName=`Rechnung_${inv.invoiceNo}.pdf`;
+    const pdf=await invoicePdfBlob(inv);
+
+    // Handy/Tablet: Teilen-Dialog mit PDF-Anhang
+    const file=new File([pdf],fileName,{type:"application/pdf"});
+    if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)&&navigator.canShare?.({files:[file]})){
+      await navigator.share({files:[file],title:subject,text});
+      info("Teilen-Dialog geöffnet. Empfänger: "+(to||"bitte manuell eintragen"),"ok");
+      return;
+    }
+
+    // Desktop: .eml-Entwurf mit Empfänger + PDF-Anhang
+    const b=`----=_SolarAbrechnung_${Date.now()}`;
+    const eml=[
+      "X-Unsent: 1",
+      `To: ${to}`,
+      `Subject: =?UTF-8?B?${b64utf8(subject)}?=`,
+      "MIME-Version: 1.0",
+      `Content-Type: multipart/mixed; boundary="${b}"`,
+      "",
+      `--${b}`,
+      "Content-Type: text/plain; charset=UTF-8",
+      "Content-Transfer-Encoding: base64",
+      "",
+      wrap76(b64utf8(text)),
+      `--${b}`,
+      `Content-Type: application/pdf; name="${fileName}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${fileName}"`,
+      "",
+      wrap76(await blobToBase64(pdf)),
+      `--${b}--`,
+      ""
+    ].join("\r\n");
+    downloadBlob(new Blob([eml],{type:"message/rfc822"}),`E-Mail_${inv.invoiceNo}.eml`);
+    info(to
+      ? `E-Mail-Entwurf für ${to} heruntergeladen. Datei öffnen: Sie enthält den PDF-Anhang.`
+      : "E-Mail-Entwurf heruntergeladen, aber beim Bezüger ist keine E-Mail-Adresse hinterlegt. Bitte Adresse im Mailprogramm ergänzen.",
+      to?"ok":"");
+  }catch(err){
+    if(err?.name==="AbortError") return; // Teilen abgebrochen
+    info("E-Mail-Vorbereitung fehlgeschlagen: "+err.message,"error");
+  }
 }
 
 /* ---- Rechnungen erstellen ---- */
@@ -891,5 +1015,7 @@ $("createInvoiceBtn").onclick=async()=>{
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </body>
 </html>
