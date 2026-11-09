@@ -112,11 +112,11 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
       <select id="invoiceProperty"></select>
     </div>
 
-    <div class="field">
-      <label for="invoicePeriod">Abrechnungsquartal</label>
-   <input id="invoicePeriod" type="text" readonly placeholder="Wird automatisch erkannt">
-        <option value="">Quartal auswählen</option>
-      </select>
+<div class="field">
+  <label for="invoicePeriod">Automatisch erkanntes Abrechnungsquartal</label>
+  <input id="invoicePeriod" type="text" readonly
+         placeholder="Wird automatisch erkannt">
+</div>
     </div>
 
     <button class="btn" id="createInvoiceBtn">Rechnung erstellen</button>
@@ -181,7 +181,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyAB4BQAfRwYArWTSj8uErj5dLnMoq85qyg",
   authDomain: "solarabrechnung.firebaseapp.com",
@@ -282,6 +282,41 @@ $("invoiceProperty").innerHTML =
   properties.map(p =>
     `<option value="${p.id}">${esc(p.name)}</option>`
   ).join("") || '<option value="">Keine Liegenschaft</option>';
+
+if (properties.length &&
+    !properties.some(p => p.id === $("invoiceProperty").value)) {
+  $("invoiceProperty").value = properties[0].id;
+}
+
+function refreshInvoicePeriod() {
+  const propertyId = $("invoiceProperty").value;
+
+  const periods = [...new Set(
+    imports
+      .filter(x =>
+        x.ownerUid === currentUser.uid &&
+        x.propertyId === propertyId
+      )
+      .map(x => x.period)
+      .filter(Boolean)
+  )];
+
+  periods.sort((a, b) => {
+    const getValue = p => {
+      const m = String(p).match(/(\d{4}).*?Q([1-4])/i);
+      return m ? Number(m[1]) * 10 + Number(m[2]) : 0;
+    };
+    return getValue(b) - getValue(a);
+  });
+
+  $("invoicePeriod").value = periods[0] || "";
+  $("invoicePeriod").placeholder = periods.length
+    ? "Automatisch erkannt"
+    : "Noch keine Messdaten für diese Liegenschaft";
+}
+
+$("invoiceProperty").onchange = refreshInvoicePeriod;
+refreshInvoicePeriod();
 
 const periods = [...new Set(
   imports
