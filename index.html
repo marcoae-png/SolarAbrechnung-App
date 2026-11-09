@@ -410,8 +410,13 @@ function invoiceMoney(value) {
 
 $("createInvoiceBtn").onclick = async () => {
   try {
-    const propertyId = $("invoiceProperty").value;
-    const period = $("invoicePeriod").value;
+    const propertyId = $("invoiceProperty").value || properties[0]?.id || "";
+const period = $("invoicePeriod").value || imports
+  .filter(x => x.ownerUid === currentUser.uid)
+  .map(x => x.period)
+  .filter(Boolean)
+  .sort()
+  .reverse()[0] || "";
 
     if (!propertyId || !period) {
       throw new Error("Bitte Liegenschaft und Quartal auswählen.");
