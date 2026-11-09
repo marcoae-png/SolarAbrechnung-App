@@ -102,8 +102,33 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:25px}
     </div>
   </section>
 
-  <section class="panel" id="panel-invoices">
-    <div class="card"><h3>Rechnungsregister</h3><p class="muted small">Erstellte Rechnungen werden später hier nach Liegenschaft und Quartal angezeigt.</p><div id="invoiceList" class="empty">Noch keine Rechnungen vorhanden.</div></div>
+<section class="panel" id="panel-invoices">
+  <div class="card">
+    <h3>Neue Rechnung erstellen</h3>
+    <p class="muted small">Abrechnungsdaten auswählen und Rechnung vorbereiten.</p>
+
+    <div class="field">
+      <label for="invoiceProperty">Liegenschaft</label>
+      <select id="invoiceProperty"></select>
+    </div>
+
+    <div class="field">
+      <label for="invoicePeriod">Abrechnungsquartal</label>
+      <select id="invoicePeriod">
+        <option value="">Quartal auswählen</option>
+      </select>
+    </div>
+
+    <button class="btn" id="createInvoiceBtn">Rechnung erstellen</button>
+    <div id="invoiceMessage" class="alert" style="display:none"></div>
+    <div id="invoicePreview"></div>
+  </div>
+
+  <div class="card" style="margin-top:15px">
+    <h3>Rechnungsregister</h3>
+    <div id="invoiceList" class="empty">Noch keine Rechnungen vorhanden.</div>
+  </div>
+
   </section>
 
   <section class="panel" id="panel-solar">
@@ -253,7 +278,22 @@ async function loadAll(){
 }
 function renderAll(){
  $("mProperties").textContent=properties.length;$("mCustomers").textContent=customers.length;$("mImports").textContent=imports.length;
- $("setupHint").textContent=properties.length?"Deine Liegenschaften sind eingerichtet. Verwalte jetzt die Bezüger und importiere die Quartalsdaten.":"Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».";
+$("invoiceProperty").innerHTML =
+  properties.map(p =>
+    `<option value="${p.id}">${esc(p.name)}</option>`
+  ).join("") || '<option value="">Keine Liegenschaft</option>';
+
+const periods = [...new Set(
+  imports
+    .filter(x => x.ownerUid === currentUser.uid)
+    .map(x => x.period)
+)].sort().reverse();
+
+$("invoicePeriod").innerHTML =
+  '<option value="">Quartal auswählen</option>' +
+  periods.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
+  
+  $("setupHint").textContent=properties.length?"Deine Liegenschaften sind eingerichtet. Verwalte jetzt die Bezüger und importiere die Quartalsdaten.":"Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».";
  $("propertyList").innerHTML=properties.length?`<div class="table-wrap"><table><thead><tr><th>Liegenschaft</th><th>Adresse</th><th>Bezüger</th><th></th></tr></thead><tbody>${properties.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc([p.street,p.house,p.postal,p.city].filter(Boolean).join(" "))}</td><td>${customers.filter(c=>c.propertyId===p.id).length}</td><td><button class="btn danger" data-del-property="${p.id}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Liegenschaft erfasst.</div>';
  $("customerList").innerHTML=customers.length?`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Liegenschaft</th><th>E-Mail</th><th></th></tr></thead><tbody>${customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.meterId)}</td><td>${esc(properties.find(p=>p.id===c.propertyId)?.name||"")}</td><td>${esc(c.email||"")}</td><td><button class="btn danger" data-del-customer="${c.id}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Bezüger erfasst.</div>';
  const options=properties.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("");
@@ -344,6 +384,132 @@ $("inspectFilesBtn").onclick=async()=>{
   $("importPreview").innerHTML=`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Zeitraum</th><th>Bezug</th><th>Datei</th></tr></thead><tbody>${result.map(x=>`<tr><td>${esc(x.customerName)}</td><td>${esc(x.meterId)}</td><td>${esc(x.start)} – ${esc(x.end)}</td><td>${x.kwh.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</td><td>${esc(x.fileName)}</td></tr>`).join("")}</tbody></table></div>`;
  }catch(e){parsedFiles=[];pendingImport=null;$("saveImportBtn").disabled=true;$("importMessage").textContent=e.message;$("importMessage").className="small alert error"}
 };
+
+function invoiceMoney(value) {
+  return Number(value || 0).toLocaleString("de-CH", {
+    style: "currency",
+    currency: "CHF"
+  });
+}
+
+$("createInvoiceBtn").onclick = async () => {
+  try {
+    const propertyId = $("invoiceProperty").value;
+    const period = $("invoicePeriod").value;
+
+    if (!propertyId || !period) {
+      throw new Error("Bitte Liegenschaft und Quartal auswählen.");
+    }
+
+    const property = properties.find(p => p.id === propertyId);
+    if (!property) throw new Error("Liegenschaft nicht gefunden.");
+
+    const importSnap = await getDocs(query(
+      collection(db, "imports"),
+      where("ownerUid", "==", currentUser.uid),
+      where("propertyId", "==", propertyId),
+      where("period", "==", period)
+    ));
+
+    if (importSnap.empty) {
+      throw new Error("Keine Messdaten für dieses Quartal gefunden.");
+    }
+
+    const tariffSnap = await getDoc(doc(db, "tariffs", propertyId));
+    if (!tariffSnap.exists()) {
+      throw new Error("Bitte zuerst die Tarife speichern.");
+    }
+
+    const tariff = tariffSnap.data();
+    const rows = importSnap.docs.flatMap(d => d.data().rows || []);
+
+    const invoices = rows.map(row => {
+      const customer = customers.find(c =>
+        c.propertyId === propertyId &&
+        String(c.meterId) === String(row.meterId)
+      );
+
+      if (!customer) {
+        throw new Error("Kein Bezüger für Zähler " + row.meterId);
+      }
+
+      const kwh = Number(row.kwh || 0);
+      const amount = kwh * Number(tariff.gridRp || 0) / 100;
+
+      let total = amount;
+      if (tariff.reductionMode === "percent") {
+        total *= 1 - Number(tariff.reductionValue || 0) / 100;
+      } else {
+        total -= Number(tariff.reductionValue || 0);
+      }
+
+      return {
+        customer,
+        row,
+        kwh,
+        total: Math.max(0, total)
+      };
+    });
+
+    $("invoicePreview").innerHTML = `
+      <h3>Rechnungsvorschau · ${esc(period)}</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Bezüger</th><th>Verbrauch</th><th>Betrag</th></tr></thead>
+        <tbody>${invoices.map(x => `
+          <tr>
+            <td>${esc(x.customer.name)}</td>
+            <td>${x.kwh.toLocaleString("de-CH")} kWh</td>
+            <td>${invoiceMoney(x.total)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>
+      <button class="btn" id="printInvoicesBtn">Rechnungen drucken / als PDF speichern</button>
+    `;
+
+    $("printInvoicesBtn").onclick = () => {
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Bitte Pop-ups für diese Seite erlauben.");
+        return;
+      }
+
+      printWindow.document.write(`
+        <html><head><title>Solarabrechnungen ${esc(period)}</title>
+        <style>
+          body{font-family:Arial,sans-serif;padding:30px;color:#222}
+          table{width:100%;border-collapse:collapse;margin-top:20px}
+          th,td{padding:10px;border-bottom:1px solid #ccc;text-align:left}
+          .invoice{page-break-after:always;padding-bottom:30px}
+          h1{color:#245b38}
+        </style></head><body>
+        ${invoices.map(x => `
+          <div class="invoice">
+            <h1>Stromabrechnung</h1>
+            <h2>${esc(x.customer.name)}</h2>
+            <p>${esc(property.name)} · ${esc(period)}</p>
+            <p>Zähler: ${esc(x.row.meterId)}</p>
+            <table>
+              <tr><th>Verbrauch</th><td>${x.kwh.toLocaleString("de-CH")} kWh</td></tr>
+              <tr><th>Netzstromtarif</th><td>${Number(tariff.gridRp).toFixed(2)} Rp./kWh</td></tr>
+              <tr><th>Betrag</th><td><b>${invoiceMoney(x.total)}</b></td></tr>
+            </table>
+          </div>`).join("")}
+        </body></html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    };
+
+    $("invoiceMessage").textContent =
+      invoices.length + " Rechnung(en) vorbereitet.";
+    $("invoiceMessage").style.display = "block";
+
+  } catch (e) {
+    $("invoiceMessage").textContent = e.message;
+    $("invoiceMessage").style.display = "block";
+  }
+};
+  
 $("saveImportBtn").onclick=async()=>{try{if(!pendingImport)throw new Error("Bitte zuerst Dateien prüfen.");const propIds=[...new Set(pendingImport.rows.map(x=>x.propertyId))];for(const propertyId of propIds){const rows=pendingImport.rows.filter(x=>x.propertyId===propertyId);await addDoc(collection(db,"imports"),{ownerUid:currentUser.uid,propertyId,period:pendingImport.period,rows,smartmeTotalKwh:rows.reduce((a,x)=>a+x.kwh,0),status:"checked-awaiting-solar-manager",createdAt:serverTimestamp()})}say("importMessage","Geprüfte Messwerte wurden in Firebase gespeichert.","ok");$("saveImportBtn").disabled=true;pendingImport=null;await loadAll()}catch(e){say("importMessage",e.message,"error")}};
 });
                    </script>
