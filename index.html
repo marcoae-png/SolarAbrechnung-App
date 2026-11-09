@@ -59,6 +59,7 @@ header.site{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);ba
 .check{color:#e2c98f;font-weight:bold}
 .login-card{background:#fff;color:var(--ink);border-radius:22px;padding:30px;box-shadow:0 28px 75px #071f1a66}
 .login-card h2{font:normal 28px Georgia,serif;color:var(--forest);margin:0 0 4px;letter-spacing:-.4px}
+#anmelden{scroll-margin-top:100px}
 .login-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
 .login-note{text-align:center;color:var(--muted);font-size:11.5px;margin:14px 0 0}
 .audience-grid{width:min(var(--max),calc(100% - 44px));margin:auto;padding:44px 0 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
@@ -166,7 +167,7 @@ tfoot th{color:#24715e}
 <div class="topbar"><div class="container"><span><strong>SolarAbrechnung.ch</strong> · Solarstromabrechnung einfach gemacht</span><span>Für Eigentümer · Verwaltungen · Solarteure</span></div></div>
 <header class="site"><div class="container nav"><a class="brand" href="https://marcoae-png.github.io/Solarabrechnung/" target="_blank" rel="noopener"><span class="brandmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"/></svg></span><span class="brandname">Solar<span>Abrechnung</span>.ch</span></a>
   <nav class="navlinks"><a href="https://marcoae-png.github.io/Solarabrechnung/#vorteile" target="_blank" rel="noopener">Vorteile</a><a href="https://marcoae-png.github.io/Solarabrechnung/#funktionen" target="_blank" rel="noopener">Funktionen</a><a href="https://marcoae-png.github.io/Solarabrechnung/#ablauf" target="_blank" rel="noopener">So funktioniert's</a><a href="https://marcoae-png.github.io/Solarabrechnung/#preise" target="_blank" rel="noopener">Preise</a></nav>
-  <a class="btn gold" href="https://marcoae-png.github.io/Solarabrechnung/#kontakt" target="_blank" rel="noopener">Demo anfragen →</a></div></header>
+  <a class="btn gold cta-trial" href="#anmelden">Testversion starten →</a></div></header>
 
 <section id="loginView">
   <div class="hero"><div class="container hero-grid">
@@ -174,8 +175,8 @@ tfoot th{color:#24715e}
       <h1>Smart-me importieren. <em>Rechnung in Sekunden.</em></h1>
       <p class="hero-copy">Melde dich an, um deine Liegenschaften zu verwalten, Smart-me-Daten einzulesen und die Solar-Manager-Kennzahlen direkt in die Abrechnung einfliessen zu lassen.</p>
       <div class="trustline"><span><b class="check">✓</b> Rechnung direkt aus dem Import</span><span><b class="check">✓</b> Solar Manager angebunden</span><span><b class="check">✓</b> Schweizer QR-Rechnungen</span></div></div>
-    <div><div class="login-card">
-      <h2>Willkommen zurück</h2><p class="muted small">Melde dich an, um deine Liegenschaften und Abrechnungen zu verwalten.</p>
+    <div><div class="login-card" id="anmelden">
+      <h2>Willkommen zurück</h2><p class="muted small">Melde dich an, um deine Liegenschaften und Abrechnungen zu verwalten.</p><div class="alert ok" style="margin:12px 0 0"><b>Neu hier?</b> Gib E-Mail und Passwort ein und klicke auf «Konto erstellen». Du kannst SolarAbrechnung 30 Tage kostenlos testen.</div>
       <div class="field"><label for="email">E-Mail-Adresse</label><input id="email" type="email" autocomplete="username" placeholder="name@beispiel.ch"></div>
       <div class="field"><label for="password">Passwort</label><input id="password" type="password" autocomplete="current-password" placeholder="Mindestens 6 Zeichen"></div>
       <div id="authMessage" class="small muted" aria-live="polite"></div>
@@ -248,7 +249,7 @@ tfoot th{color:#24715e}
 <footer class="site"><div class="container"><div class="footer-grid">
  <div><a class="brand" href="https://marcoae-png.github.io/Solarabrechnung/" target="_blank" rel="noopener"><span class="brandmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"/></svg></span><span class="brandname">Solar<span>Abrechnung</span>.ch</span></a><p>Die praktische Lösung für den strukturierten Solarstrom-Abrechnungsprozess.</p></div>
  <div><h4>Navigation</h4><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#vorteile" target="_blank" rel="noopener">Für wen?</a><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#funktionen" target="_blank" rel="noopener">Funktionen</a><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#ablauf" target="_blank" rel="noopener">So funktioniert's</a><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#preise" target="_blank" rel="noopener">Preise</a></div>
- <div><h4>Kontakt</h4><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#kontakt" target="_blank" rel="noopener">Demo anfragen</a><a class="fl" href="mailto:marco.aebersold@bluewin.ch">E-Mail-Kontakt</a></div>
+ <div><h4>Kontakt</h4><a class="fl cta-trial" href="#anmelden">Testversion starten</a><a class="fl" href="mailto:marco.aebersold@bluewin.ch">E-Mail-Kontakt</a></div>
 </div><div class="footer-bottom"><span>© SolarAbrechnung.ch · Eine Schweizer Lösung für Solarstromabrechnungen</span><span>Datenhaltung Firebase</span></div></div></footer>
 
 <script type="module">
@@ -488,7 +489,9 @@ async function trialStatus(user){
   return {ok:left>0,paid:false,left};
 }
 
+document.querySelectorAll(".cta-trial").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();$("anmelden").scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>$("email").focus({preventScroll:true}),450);}));
 onAuthStateChanged(auth,async user=>{
+  document.querySelectorAll(".cta-trial").forEach(a=>a.classList.toggle("hidden",!!user));
   if(user){
     const t=await trialStatus(user);
     if(!t.ok){
