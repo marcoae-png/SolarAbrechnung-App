@@ -247,10 +247,10 @@ tfoot th{color:#24715e}
     </div>
     <div class="card" style="margin-top:14px">
       <h3>Easee-Keys den Bezügern zuordnen</h3>
-      <p class="muted small">Ordne jeden gefundenen Easee-Key einem bestehenden Bezüger und dessen Zähler zu. Die Zuordnung wird dauerhaft in Firebase gespeichert und bei späteren Importen automatisch wiederverwendet.</p>
+      <p class="muted small">Ordne gewünschte Easee-Keys einem bestehenden Bezüger und dessen Zähler zu. Wähle bei privaten oder nicht abzurechnenden Keys «Nicht importieren». Auch diese Auswahl wird dauerhaft gespeichert und bei späteren Importen berücksichtigt.</p>
       <div id="easeeMappingList" class="empty">Noch keine Easee-Keys zugeordnet. Füge unten einen Key-Namen hinzu.</div>
       <div class="toolbar"><input id="newEaseeKey" placeholder="Easee-Key / Username" style="max-width:260px"><button class="btn alt" id="addEaseeKeyBtn">Key hinzufügen</button><button class="btn" id="saveEaseeMappingsBtn">Zuordnungen speichern</button></div>
-      <div id="easeeMappingMessage" class="small muted">Nur gespeicherte Keys werden importiert. Nicht zugeordnete Keys werden ignoriert.</div>
+      <div id="easeeMappingMessage" class="small muted">Nur zugeordnete Keys werden importiert. «Nicht importieren» wird dauerhaft gespeichert und übersprungen.</div>
     </div>
     <div class="grid two" style="margin-top:14px">
       <div class="card"><h3>Easee-Excel importieren</h3><p class="muted small">Easee Key Summary Report (.xlsx). Die Periode wird anhand des Exportdatums automatisch dem Kalenderquartal zugeordnet.</p><div class="drop"><b>Datei auswählen</b><p class="muted small">Easee Excel .xlsx</p><input id="easeeExcelFile" type="file" accept=".xlsx,.xls"></div><div class="toolbar"><button class="btn" id="inspectEaseeBtn">Datei prüfen</button><button class="btn alt" id="saveEaseeImportBtn" disabled>Easee-Import speichern</button></div><div id="easeeImportMessage" class="small muted">Noch keine Datei ausgewählt.</div></div>
@@ -647,7 +647,7 @@ function renderEaseeMappings(){
 $("addEaseeKeyBtn").onclick=()=>{const key=$("newEaseeKey").value.trim();if(!key)return;if(Object.prototype.hasOwnProperty.call(easeeMappings,key)){say("easeeMappingMessage","Dieser Easee-Key ist bereits vorhanden.","error");return;}easeeMappings[key]="";$("newEaseeKey").value="";renderEaseeMappings();};
 document.addEventListener("change",e=>{const el=e.target.closest("[data-easee-map]");if(el)easeeMappings[el.dataset.easeeMap]=el.value;});
 document.addEventListener("click",e=>{const el=e.target.closest("[data-easee-remove]");if(el){delete easeeMappings[el.dataset.easeeRemove];renderEaseeMappings();}});
-$("saveEaseeMappingsBtn").onclick=async()=>{try{const cleaned={};for(const [key,id] of Object.entries(easeeMappings)){if(!String(id||"").trim())continue;if(!customers.some(c=>c.id===id))throw new Error(`Die Zuordnung für den Easee-Key «${key}» verweist auf keinen vorhandenen Bezüger mehr.`);cleaned[key]=id;}easeeMappings=cleaned;await setDoc(doc(db,"easeeMappings",currentUser.uid),{ownerUid:currentUser.uid,mappings:easeeMappings,updatedAt:serverTimestamp()});renderEaseeMappings();say("easeeMappingMessage","Easee-Key-Zuordnungen gespeichert. Nicht zugeordnete Keys werden ignoriert.","ok");}catch(e){say("easeeMappingMessage",e.message,"error");}};
+$("saveEaseeMappingsBtn").onclick=async()=>{try{const cleaned={};for(const [key,id] of Object.entries(easeeMappings)){const customerId=String(id||"").trim();if(customerId&&!customers.some(c=>c.id===customerId))throw new Error(`Die Zuordnung für den Easee-Key «${key}» verweist auf keinen vorhandenen Bezüger mehr.`);cleaned[key]=customerId;}easeeMappings=cleaned;await setDoc(doc(db,"easeeMappings",currentUser.uid),{ownerUid:currentUser.uid,mappings:easeeMappings,updatedAt:serverTimestamp()});renderEaseeMappings();say("easeeMappingMessage","Easee-Key-Zuordnungen gespeichert. Keys mit «Nicht importieren» werden dauerhaft ignoriert.","ok");}catch(e){say("easeeMappingMessage",e.message,"error");}};
 
 function setEaseeQuarterDefaults(){
   const now=new Date(),q=Math.floor(now.getMonth()/3),start=new Date(now.getFullYear(),q*3,1),end=new Date(now.getFullYear(),q*3+3,0);
