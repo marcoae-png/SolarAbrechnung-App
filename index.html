@@ -746,6 +746,13 @@ async function autoImportEaseeForPeriod(propertyId, period) {
   await $("inspectEaseeBtn").onclick();
   if (!pendingEaseeImport) {
     const detail = $("easeeImportMessage").textContent || "Easee-Bericht konnte nicht geprüft werden.";
+    // Ein leerer Easee-Bericht bedeutet: In diesem Zeitraum gibt es keinen
+    // abrechenbaren Easee-Verbrauch. Smart-me-Rechnungen dürfen weiterlaufen.
+    if (/keine Easee-Key-Verbrauchsdaten gefunden|keine zugeordneten Easee-Keys/i.test(detail)) {
+      window.easeePendingApiFile = null;
+      pendingEaseeImport = null;
+      return { connected:true, imported:false, noUsage:true };
+    }
     throw new Error(detail + (detail.includes("zuordnen") ? " Bitte die neuen Keys zuordnen und die Rechnung danach erneut erstellen." : ""));
   }
   // Neue Keys dürfen nicht stillschweigend ausgelassen werden: zuerst einmalig zuordnen.
@@ -756,8 +763,11 @@ async function autoImportEaseeForPeriod(propertyId, period) {
   // Nur Daten der aktuell ausgewählten Liegenschaft in diesem Rechnungslauf speichern.
   const selected = pendingEaseeImport.byProperty[propertyId];
   if (!selected || !selected.rows.length) {
+    // Diese Liegenschaft hat keine zugeordneten Easee-Keys. Andere
+    // Liegenschaften mit Easee bleiben davon unberührt.
     pendingEaseeImport = null;
-    throw new Error("Für diese Liegenschaft wurden im Easee-Bericht keine zugeordneten Keys gefunden.");
+    window.easeePendingApiFile = null;
+    return { connected:true, imported:false, noUsage:true };
   }
   const existing = await getDocs(query(collection(db,"easeeImports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)));
   for (const old of existing.docs) await deleteDoc(doc(db,"easeeImports",old.id));
@@ -1266,10 +1276,10 @@ $("createInvoiceBtn").onclick=async()=>{
   try {
     const propertyId=$("invoiceProperty").value, period=$("invoicePeriod").value;
     if(!propertyId||!period) throw new Error("Für diese Liegenschaft wurden noch keine Messdaten importiert.");
-    msg("Easee-Verbrauch wird automatisch aktualisiert …");
+    msg("Easee-Verbrauch wird geprüft …");
     let easeeAutoResult={connected:false,imported:false};
     try { easeeAutoResult = await autoImportEaseeForPeriod(propertyId,period); }
-    catch(e) { throw new Error("Automatischer Easee-Import fehlgeschlagen: " + e.message); }
+    catch(e) { throw new Error("Easee-Import fehlgeschlagen: " + e.message); }
     const [snap,easeeSnap]=await Promise.all([
       getDocs(query(collection(db,"imports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period))),
       getDocs(query(collection(db,"easeeImports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)))
@@ -1305,7 +1315,7 @@ $("createInvoiceBtn").onclick=async()=>{
     const dev=Math.abs(totalSmartme-fig.consumption)/fig.consumption*100;
     draftInvoices=list; draftMeta={propertyId,period};
     const devCombined=Math.abs(totalCombined-fig.consumption)/fig.consumption*100;
-    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me ${fmtKwh(totalSmartme)} + Easee ${fmtKwh(totalEasee)} = ${fmtKwh(totalCombined)}. ${easeeAutoResult.imported?"Easee wurde automatisch aktualisiert. ":"Kein neuer Easee-Import (bestehende Daten werden verwendet). "}Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(devCombined>5?` Achtung: Die Summen weichen um ${fmtPct(devCombined)} ab – bitte vor dem Versand prüfen.`:""),devCombined>5?"":"ok");
+    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me ${fmtKwh(totalSmartme)} + Easee ${fmtKwh(totalEasee)} = ${fmtKwh(totalCombined)}. ${easeeAutoResult.imported?"Easee wurde automatisch aktualisiert. ":(easeeAutoResult.noUsage?"Kein Easee-Verbrauch für diese Liegenschaft/Periode – Easee übersprungen. ":(easeeAutoResult.connected?"Kein neuer Easee-Import (bestehende Daten werden verwendet). ":"Keine Easee-Verbindung – Easee übersprungen. "))}Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(devCombined>5?` Achtung: Die Summen weichen um ${fmtPct(devCombined)} ab – bitte vor dem Versand prüfen.`:""),devCombined>5?"":"ok");
     const sum=list.reduce((s,x)=>s+x.total,0);
     // Zusätzlicher Abrechnungscheck: Hinweise anzeigen, ohne bestehende Berechnungen zu verändern.
     const audit=list.map(inv=>{
