@@ -215,7 +215,6 @@ tfoot th{color:#24715e}
         <div class="solar-metric"><span>Autarkiegrad</span><b id="sdAutarky">–</b><small>Anteil des Verbrauchs aus Solar</small></div>
         <div class="solar-metric"><span>Eigenverbrauchsquote</span><b id="sdSelfRate">–</b><small>Anteil der Produktion selbst genutzt</small></div>
       </div>
-      <div class="card" style="margin-top:14px;box-shadow:none"><h3>Easee-Gerätewerte prüfen</h3><p class="muted small">Prüft, ob der SolarManager die Geräte-Autarkie von EASEE HOME über die API bereitstellt. Es werden keine Rechnungswerte verändert.</p><button class="btn alt" id="checkEaseeSolarDataBtn">Easee-Solarwerte prüfen</button><div id="easeeSolarDataMessage" class="alert" style="margin-top:10px">Noch keine Diagnose ausgeführt.</div><pre id="easeeSolarDataRaw" class="small" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;display:none"></pre></div>
       <div class="card" style="margin-top:14px;box-shadow:none"><h3>Solarstrom und Ersparnis pro Bezüger</h3><div id="solarCustomerEstimate" class="empty">Noch keine Solarwerte geladen.</div><div class="solar-note">Schätzung: Da die Smart-me-Zähler nur den Gesamtverbrauch messen, wird der Solarstrom proportional zum Verbrauch auf die Bezüger verteilt. Die individuelle Aufteilung ist nicht gemessen. Die Ersparnis wird aus der Differenz zwischen Netzstrom- und Solarstromtarif berechnet.</div></div>
     </div>
     <div class="card" id="welcomeCard" style="margin-top:15px"><h3>Willkommen bei SolarAbrechnung</h3><p class="muted small">Lege zuerst eine Liegenschaft und danach die zugehörigen Bezüger mit ihren Smart-me-Zählernummern an. Anschliessend kannst du die Excel-Exporte importieren.</p><div id="setupHint" class="alert">Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».</div></div>
@@ -248,10 +247,10 @@ tfoot th{color:#24715e}
     </div>
     <div class="card" style="margin-top:14px">
       <h3>Easee-Keys den Bezügern zuordnen</h3>
-      <p class="muted small">Ordne jeden gefundenen Easee-Key einem bestehenden Bezüger und dessen Zähler zu. Die Zuordnung wird dauerhaft in Firebase gespeichert und bei späteren Importen automatisch wiederverwendet.</p>
+      <p class="muted small">Ordne gewünschte Easee-Keys einem bestehenden Bezüger und dessen Zähler zu. Wähle bei privaten oder nicht abzurechnenden Keys «Nicht importieren». Auch diese Auswahl wird dauerhaft gespeichert und bei späteren Importen berücksichtigt.</p>
       <div id="easeeMappingList" class="empty">Noch keine Easee-Keys zugeordnet. Füge unten einen Key-Namen hinzu.</div>
       <div class="toolbar"><input id="newEaseeKey" placeholder="Easee-Key / Username" style="max-width:260px"><button class="btn alt" id="addEaseeKeyBtn">Key hinzufügen</button><button class="btn" id="saveEaseeMappingsBtn">Zuordnungen speichern</button></div>
-      <div id="easeeMappingMessage" class="small muted">Nur gespeicherte Keys werden importiert. Nicht zugeordnete Keys werden ignoriert.</div>
+      <div id="easeeMappingMessage" class="small muted">Nur zugeordnete Keys werden importiert. «Nicht importieren» wird dauerhaft gespeichert und übersprungen.</div>
     </div>
     <div class="grid two" style="margin-top:14px">
       <div class="card"><h3>Easee-Excel importieren</h3><p class="muted small">Easee Key Summary Report (.xlsx). Die Periode wird anhand des Exportdatums automatisch dem Kalenderquartal zugeordnet.</p><div class="drop"><b>Datei auswählen</b><p class="muted small">Easee Excel .xlsx</p><input id="easeeExcelFile" type="file" accept=".xlsx,.xls"></div><div class="toolbar"><button class="btn" id="inspectEaseeBtn">Datei prüfen</button><button class="btn alt" id="saveEaseeImportBtn" disabled>Easee-Import speichern</button></div><div id="easeeImportMessage" class="small muted">Noch keine Datei ausgewählt.</div></div>
@@ -338,22 +337,6 @@ async function solarDataRequest(path) {
   if (!response.ok) throw new Error(data.error || "Solar-Manager-Daten konnten nicht geladen werden.");
   return data;
 }
-$("checkEaseeSolarDataBtn").onclick=async()=>{
-  const button=$("checkEaseeSolarDataBtn"), message=$("easeeSolarDataMessage"), raw=$("easeeSolarDataRaw");
-  try{
-    const propertyId=$("solarDashProperty").value, period=$("solarDashPeriod").value;
-    if(!propertyId||!period) throw new Error("Bitte zuerst im Solar-Dashboard eine Liegenschaft und einen importierten Zeitraum auswählen.");
-    const {from,to}=quarterDates(period);
-    button.disabled=true;message.className="alert";message.textContent="SolarManager-Gerätewerte werden geprüft …";raw.style.display="none";
-    const data=await solarDataRequest("/api/solar-easee-diagnose?"+new URLSearchParams({from,to}));
-    raw.textContent=JSON.stringify(data.result||data,null,2);raw.style.display="block";
-    const matches=data.result?.easeeDeviceMatches||[];
-    message.className="alert ok";
-    message.textContent=matches.length?`Diagnose abgeschlossen: ${matches.length} mögliches Easee-Gerät gefunden. Die API-Antwort steht darunter zur Auswertung.`:"Diagnose abgeschlossen. Kein Gerät mit Easee-/Wallbox-Bezeichnung gefunden; die vollständige API-Antwort steht darunter.";
-  }catch(error){message.className="alert error";message.textContent=error.message||String(error);}
-  finally{button.disabled=false;}
-};
-
 async function easeeApiRequest(path, method="GET", body=null) {
   if (!currentUser) throw new Error("Bitte zuerst im SolarAbrechnung-Portal anmelden.");
   const token=await currentUser.getIdToken();
@@ -664,7 +647,7 @@ function renderEaseeMappings(){
 $("addEaseeKeyBtn").onclick=()=>{const key=$("newEaseeKey").value.trim();if(!key)return;if(Object.prototype.hasOwnProperty.call(easeeMappings,key)){say("easeeMappingMessage","Dieser Easee-Key ist bereits vorhanden.","error");return;}easeeMappings[key]="";$("newEaseeKey").value="";renderEaseeMappings();};
 document.addEventListener("change",e=>{const el=e.target.closest("[data-easee-map]");if(el)easeeMappings[el.dataset.easeeMap]=el.value;});
 document.addEventListener("click",e=>{const el=e.target.closest("[data-easee-remove]");if(el){delete easeeMappings[el.dataset.easeeRemove];renderEaseeMappings();}});
-$("saveEaseeMappingsBtn").onclick=async()=>{try{const cleaned={};for(const [key,id] of Object.entries(easeeMappings)){if(!String(id||"").trim())continue;if(!customers.some(c=>c.id===id))throw new Error(`Die Zuordnung für den Easee-Key «${key}» verweist auf keinen vorhandenen Bezüger mehr.`);cleaned[key]=id;}easeeMappings=cleaned;await setDoc(doc(db,"easeeMappings",currentUser.uid),{ownerUid:currentUser.uid,mappings:easeeMappings,updatedAt:serverTimestamp()});renderEaseeMappings();say("easeeMappingMessage","Easee-Key-Zuordnungen gespeichert. Nicht zugeordnete Keys werden ignoriert.","ok");}catch(e){say("easeeMappingMessage",e.message,"error");}};
+$("saveEaseeMappingsBtn").onclick=async()=>{try{const cleaned={};for(const [key,id] of Object.entries(easeeMappings)){const customerId=String(id||"").trim();if(customerId&&!customers.some(c=>c.id===customerId))throw new Error(`Die Zuordnung für den Easee-Key «${key}» verweist auf keinen vorhandenen Bezüger mehr.`);cleaned[key]=customerId;}easeeMappings=cleaned;await setDoc(doc(db,"easeeMappings",currentUser.uid),{ownerUid:currentUser.uid,mappings:easeeMappings,updatedAt:serverTimestamp()});renderEaseeMappings();say("easeeMappingMessage","Easee-Key-Zuordnungen gespeichert. Keys mit «Nicht importieren» werden dauerhaft ignoriert.","ok");}catch(e){say("easeeMappingMessage",e.message,"error");}};
 
 function setEaseeQuarterDefaults(){
   const now=new Date(),q=Math.floor(now.getMonth()/3),start=new Date(now.getFullYear(),q*3,1),end=new Date(now.getFullYear(),q*3+3,0);
@@ -944,9 +927,18 @@ function buildInvoices(propertyId,period,rows,tariff,fig){
   const existing=invoices.filter(x=>x.period===period).length;
   return rows.map((r,i)=>{
     const c=customers.find(x=>x.propertyId===propertyId&&String(x.meterId)===String(r.meterId))||{};
-    const kwh=r2(Number(r.kwh||0));
-    const solarKwh=r2(kwh*rate), gridKwh=r2(kwh-solarKwh);
-    const gridAmt=r2(gridKwh*gridRp/100), solarAmt=r2(solarKwh*solarRp/100), energy=r2(gridAmt+solarAmt);
+    // Smart-me- und Easee-Mengen getrennt führen, damit der Autoverbrauch
+    // auf der Rechnung sichtbar bleibt und nicht im normalen Bezug verschwindet.
+    const easeeKwh=r2(Math.max(0,Number(r.easeeKwh||0)));
+    const smartmeKwh=r2(Math.max(0,Number(r.smartmeKwh ?? (Number(r.kwh||0)-easeeKwh))));
+    const kwh=r2(smartmeKwh+easeeKwh);
+    const solarKwh=r2(smartmeKwh*rate), gridKwh=r2(smartmeKwh-solarKwh);
+    // Easee-Solar-/Netzanteil wird proportional zum Solar-Eigenverbrauchsanteil der Anlage berechnet.
+    const easeeSolarKwh=r2(easeeKwh*rate), easeeGridKwh=r2(easeeKwh-easeeSolarKwh);
+    const easeeSolarPct=easeeKwh>0?easeeSolarKwh/easeeKwh*100:0;
+    const easeeSolarAmt=r2(easeeSolarKwh*solarRp/100), easeeGridAmt=r2(easeeGridKwh*gridRp/100);
+    const easeeAmt=r2(easeeSolarAmt+easeeGridAmt);
+    const gridAmt=r2(gridKwh*gridRp/100), solarAmt=r2(solarKwh*solarRp/100), energy=r2(gridAmt+solarAmt+easeeAmt);
     const rv=Number(tariff.reductionValue||0);
     let reduction=tariff.reductionMode==="fixed"?Math.min(rv,energy):r2(energy*rv/100);
     reduction=r2(reduction);
@@ -959,8 +951,8 @@ function buildInvoices(propertyId,period,rows,tariff,fig){
       customer:{name:c.name||r.customerName||"",street:c.street||"",house:c.house||"",postal:c.postal||"",city:c.city||"",meterId:String(r.meterId||""),email:c.email||""},
       creditor:{name:tariff.creditorName||"",street:tariff.creditorStreet||"",house:tariff.creditorHouse||"",postal:tariff.creditorPostal||"",city:tariff.creditorCity||"",email:tariff.creditorEmail||"",phone:tariff.creditorPhone||""},
       iban:String(tariff.iban||"").replace(/\s/g,"").toUpperCase(),refType:refInfo.type,reference:refInfo.ref,referenceDisplay:refInfo.display,
-      kwh,solarKwh,gridKwh,gridRp,solarRp,gridAmt,solarAmt,reductionMode:tariff.reductionMode||"percent",reductionValue:rv,reduction,rent,total,
-      benefit:r2(solarKwh*Math.max(0,gridRp-solarRp)/100),solarSharePct:kwh>0?solarKwh/kwh*100:0,cheaperPct:gridRp>0?Math.max(0,(gridRp-solarRp)/gridRp*100):0,
+      kwh,smartmeKwh,easeeKwh,easeeSolarKwh,easeeGridKwh,easeeSolarPct,easeeSolarAmt,easeeGridAmt,easeeAmt,solarKwh,gridKwh,gridRp,solarRp,gridAmt,solarAmt,reductionMode:tariff.reductionMode||"percent",reductionValue:rv,reduction,rent,total,
+      benefit:r2(solarKwh*Math.max(0,gridRp-solarRp)/100),solarSharePct:smartmeKwh>0?solarKwh/smartmeKwh*100:0,cheaperPct:gridRp>0?Math.max(0,(gridRp-solarRp)/gridRp*100):0,
       plant:{production:r2(fig.production),consumption:r2(fig.consumption),selfUse:r2(fig.selfUse),autarky:fig.autarky,selfRate:fig.selfRate,months:fig.months}
     };
   });
@@ -1015,6 +1007,14 @@ table.e td{padding:1mm 0;border-bottom:1px solid #e6ede8;text-align:right;vertic
 table.e td small{display:block;color:#64766f;font-size:7pt}
 .bar{height:1.3mm;background:#dce6df;border-radius:1mm;overflow:hidden;width:60mm;margin-top:1mm}.bar i{display:block;height:100%;background:#24715e}
 .good{color:#24715e;font-weight:700;font-size:7pt}
+.consumption-share{display:flex;align-items:center;gap:4mm;border:1px solid #dce6df;border-radius:2.6mm;padding:2mm 3mm;margin:2mm 0 1.5mm;background:#fbfdfb;break-inside:avoid}
+.consumption-share svg{width:22mm;height:22mm;flex:none;transform:rotate(-90deg)}
+.consumption-share .share-title{font-size:7.6pt;font-weight:700;margin-bottom:1mm}
+.consumption-share .share-legend{display:flex;gap:4mm;flex-wrap:wrap;font-size:7pt;color:#52655e}
+.consumption-share .share-legend span{white-space:nowrap}
+.consumption-share .dot{display:inline-block;width:2mm;height:2mm;border-radius:50%;margin-right:1mm;vertical-align:middle;background:#24715e}
+.consumption-share .dot.grid{background:#c9a765}
+.consumption-share .share-saving{font-size:7pt;color:#24715e;font-weight:700;margin-top:1mm}
 .total td{border:0;padding-top:2mm;font-weight:700;vertical-align:middle}.total td:last-child{font-size:12pt;color:#24715e}
 .benefit{text-align:right;font-size:7.4pt;color:#24715e;margin-top:1mm}
 .note{font-size:6.8pt;color:#64766f;margin:1.5mm 0}
@@ -1045,6 +1045,10 @@ const lines=o=>[[o.street,o.house].filter(Boolean).join(" "),[o.postal,o.city].f
 const block=(...ls)=>ls.filter(Boolean).map(x=>esc(x)).join("<br>");
 function invoicePage(inv){
   const c=inv.creditor,d=inv.customer,p=inv.plant;
+  const solarPct=Math.max(0,Math.min(100,Number(inv.solarSharePct)||0));
+  const gridPct=100-solarPct;
+  const ringLength=2*Math.PI*28;
+  const solarDash=(ringLength*solarPct/100).toFixed(2);
   const cLines=lines(c), dLines=lines(d), hasDebtor=d.name&&d.postal&&d.city;
   const maxM=Math.max(1,...p.months.map(m=>m.kwh||0));
   const account=block(fmtIban(inv.iban),c.name,...cLines);
@@ -1060,11 +1064,14 @@ function invoicePage(inv){
   <div class="period"><div><small>Abrechnungszeitraum</small><b>${isoToCh(inv.periodStart)} – ${isoToCh(inv.periodEnd)}</b></div><div><small>Strombezug</small><b>${num2(inv.kwh)} kWh</b></div></div>
   <h3>Abgerechnete Energie</h3>
   <table class="e"><thead><tr><th>Leistung</th><th>Menge</th><th>Preis je kWh</th><th>Betrag</th></tr></thead><tbody>
-   <tr><td><b>Netzstrom</b><small>Gesamtbezug abzüglich Solarstromanteil</small></td><td>${num2(inv.gridKwh)} kWh</td><td>CHF ${(inv.gridRp/100).toFixed(4)}</td><td>${chf(inv.gridAmt)}</td></tr>
-   <tr><td><b>Solarstrom</b><small>Anteil am Verbrauch · Solar ${inv.solarSharePct.toFixed(1)} % · Netz ${(100-inv.solarSharePct).toFixed(1)} %</small><div class="bar"><i style="width:${Math.min(100,inv.solarSharePct).toFixed(1)}%"></i></div>${inv.cheaperPct>0?`<span class="good">Solarstrom ${inv.cheaperPct.toFixed(1)} % günstiger als Netzstrom</span>`:""}</td><td>${num2(inv.solarKwh)} kWh</td><td>CHF ${(inv.solarRp/100).toFixed(4)}</td><td>${chf(inv.solarAmt)}</td></tr>
+   <tr><td><b>Netzstrom</b><small>Smart-me-Bezug abzüglich Solarstromanteil</small></td><td>${num2(inv.gridKwh)} kWh</td><td>CHF ${(inv.gridRp/100).toFixed(4)}</td><td>${chf(inv.gridAmt)}</td></tr>
+   <tr><td><b>Solarstrom</b><small>Geschätzter Anteil am Smart-me-Verbrauch</small></td><td>${num2(inv.solarKwh)} kWh</td><td>CHF ${(inv.solarRp/100).toFixed(4)}</td><td>${chf(inv.solarAmt)}</td></tr>
+   ${inv.easeeKwh>0?`<tr><td><b>Easee · Solarstrom</b><small>Solaranteil beim Laden</small></td><td>${num2(inv.easeeSolarKwh)} kWh</td><td>CHF ${(inv.solarRp/100).toFixed(4)}</td><td>${chf(inv.easeeSolarAmt)}</td></tr><tr><td><b>Easee · Netzstrom</b><small>Netzanteil beim Laden</small></td><td>${num2(inv.easeeGridKwh)} kWh</td><td>CHF ${(inv.gridRp/100).toFixed(4)}</td><td>${chf(inv.easeeGridAmt)}</td></tr>`:""}
    ${inv.reduction>0?`<tr><td>Reduktion${inv.reductionMode==="percent"?` (${num2(inv.reductionValue)} %)`:" (Pauschalabzug)"}</td><td></td><td></td><td>− ${chf(inv.reduction)}</td></tr>`:""}
    ${inv.rent>0?`<tr><td>Zählermiete</td><td></td><td></td><td>${chf(inv.rent)}</td></tr>`:""}
    <tr class="total"><td colspan="3">Zu bezahlen${inv.benefit>0?`<div class="good" style="font-weight:400;margin-top:.5mm">Vorteil durch Solarstrom: ${chf(inv.benefit)}</div>`:""}</td><td>${chf(inv.total)}</td></tr></tbody></table>
+  ${inv.easeeKwh>0?`<div class="easee-share" style="margin:3mm 0 2mm;padding:2.5mm 3mm;border:1px solid #d8e3de;border-radius:2mm;break-inside:avoid"><div style="font-size:8pt;font-weight:700;margin-bottom:1.5mm">Easee · Stromverbrauch des Elektroautos</div><div style="display:flex;justify-content:space-between;font-size:7pt;margin-bottom:1mm"><b style="color:#24715e">Solarstrom ${inv.easeeSolarPct.toFixed(1)} %</b><b style="color:#80652f">Netzstrom ${(100-inv.easeeSolarPct).toFixed(1)} %</b></div><div style="height:3mm;background:#c9a765;border-radius:2mm;overflow:hidden;display:flex"><i style="display:block;height:100%;width:${Math.max(0,Math.min(100,inv.easeeSolarPct)).toFixed(2)}%;background:#24715e"></i></div><div style="display:flex;justify-content:space-between;gap:3mm;font-size:7pt;margin-top:1.5mm;color:#43564f"><span>Solar: ${num2(inv.easeeSolarKwh)} kWh</span><span>Netz: ${num2(inv.easeeGridKwh)} kWh</span><b>Total: ${num2(inv.easeeKwh)} kWh</b></div></div>`:""}
+  <div class="consumption-share"><svg viewBox="0 0 72 72" role="img" aria-label="Solar ${solarPct.toFixed(1)} Prozent, Netz ${gridPct.toFixed(1)} Prozent"><circle cx="36" cy="36" r="28" fill="none" stroke="#c9a765" stroke-width="9"/><circle cx="36" cy="36" r="28" fill="none" stroke="#24715e" stroke-width="9" stroke-dasharray="${solarDash} ${ringLength.toFixed(2)}" stroke-linecap="butt"/><text x="36" y="39" text-anchor="middle" font-size="10" font-weight="700" fill="#18342e" transform="rotate(90 36 36)">${solarPct.toFixed(1)}%</text></svg><div><div class="share-title">Anteil am Verbrauch</div><div class="share-legend"><span><i class="dot"></i>Solar ${solarPct.toFixed(1)} %</span><span><i class="dot grid"></i>Netz ${gridPct.toFixed(1)} %</span></div>${inv.cheaperPct>0?`<div class="share-saving">Solarstrom ${inv.cheaperPct.toFixed(1)} % günstiger als Netzstrom</div>`:""}</div></div>
   <h3 style="margin-top:3mm;display:flex;justify-content:space-between;align-items:baseline">Gesamte Solaranlage · ${esc(inv.periodLabel)}<span class="note" style="margin:0;font-weight:400">Anlagenwerte; oben: Anteil dieses Bezügers</span></h3>
   <div class="plant"><div class="p1"><small>Autarkiegrad der Anlage</small><b>${p.autarky.toFixed(2)} %</b><span>${num2(p.selfUse)} von ${num2(p.consumption)} kWh Gesamtverbrauch</span></div>
    <div class="p2"><small>Eigenverbrauchsanteil der Produktion</small><b>${p.selfRate.toFixed(2)} %</b><span>${num2(p.selfUse)} von ${num2(p.production)} kWh Solarproduktion</span></div>
@@ -1265,8 +1272,18 @@ $("createInvoiceBtn").onclick=async()=>{
     if(!tariff.creditorName||!tariff.creditorPostal||!tariff.creditorCity||!validIban(tariff.iban||"")) throw new Error("Bitte zuerst unter «Tarife» die Rechnungssteller-Angaben (Name, PLZ, Ort) und eine gültige IBAN speichern. Sie werden für den QR-Zahlteil benötigt.");
     if(!(Number(tariff.gridRp)>0)) throw new Error("Bitte zuerst einen Netzstrom-Tarif grösser als 0 speichern.");
     const rows=latestRows(snap.docs.map(d=>d.data()));
-    const combined=new Map(rows.map(r=>[String(r.meterId),{...r,kwh:Number(r.kwh||0)}]));
-    for(const d of easeeSnap.docs){for(const r of (d.data().rows||[])){const id=String(r.meterId);const target=combined.get(id)||{...r,kwh:0};target.kwh+=Number(r.kwh||0);target.easeeKwh=(Number(target.easeeKwh)||0)+Number(r.kwh||0);combined.set(id,target);}}
+    const meterKey=value=>String(value??"").trim();
+    const combined=new Map(rows.map(r=>[meterKey(r.meterId),{...r,kwh:Number(r.kwh||0),smartmeKwh:Number(r.kwh||0),easeeKwh:0}]));
+    for(const d of easeeSnap.docs){
+      for(const r of (d.data().rows||[])){
+        const id=meterKey(r.meterId);
+        const target=combined.get(id)||{...r,kwh:0,smartmeKwh:0,easeeKwh:0};
+        const added=Math.max(0,Number(r.kwh||0));
+        target.easeeKwh=(Number(target.easeeKwh)||0)+added;
+        target.kwh=(Number(target.smartmeKwh)||0)+target.easeeKwh;
+        combined.set(id,target);
+      }
+    }
     const invoiceRows=[...combined.values()];
     const missing=invoiceRows.filter(row=>!customers.some(c=>c.propertyId===propertyId&&String(c.meterId)===String(row.meterId)));
     if(missing.length) throw new Error("Für Zähler "+missing[0].meterId+" wurde kein Bezüger gefunden.");
@@ -1295,7 +1312,7 @@ $("createInvoiceBtn").onclick=async()=>{
     const auditHtml=flagged.length
       ? `<div class="alert" style="margin-top:14px"><b>${flagged.length} von ${list.length} Rechnungen mit Prüfhinweis(en)</b><ul class="small" style="margin:7px 0 0;padding-left:18px">${flagged.map(x=>`<li><b>${esc(x.inv.customer.name)}</b>: ${x.issues.map(esc).join(" · ")}</li>`).join("")}</ul><p class="small" style="margin:8px 0 0">Bitte Hinweise vor dem Speichern kontrollieren. Fehlende E-Mail-Adressen verhindern die PDF-Erstellung nicht.</p></div>`
       : `<div class="alert ok" style="margin-top:14px"><b>Abrechnungs-Check bestanden.</b> Keine offensichtlichen Auffälligkeiten bei Verbrauch, Adresse und Rechnungsbetrag gefunden.</div>`;
-    $("invoicePreview").innerHTML=`<div class="card" style="margin-top:12px;box-shadow:none"><h3>Prüfübersicht · ${esc(period)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Bezug</th><th>Solar</th><th>Netz</th><th>Betrag</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td><b>${esc(x.customer.name)}</b></td><td>${fmtKwh(x.kwh)}</td><td>${fmtKwh(x.solarKwh)}</td><td>${fmtKwh(x.gridKwh)}</td><td><b>${chf(x.total)}</b></td></tr>`).join("")}</tbody><tfoot><tr><th colspan="5">Total</th><th>${chf(sum)}</th></tr></tfoot></table></div>${auditHtml}<div class="toolbar"><button class="btn gold" id="draftViewBtn">Rechnungen ansehen / drucken</button><button class="btn" id="draftSaveBtn">Im Rechnungsregister speichern</button><button class="btn alt" id="auditCsvBtn">Prüfbericht als CSV</button></div><p class="small muted">Easee-Verbrauch ist im jeweiligen Bezüger-Gesamtverbrauch enthalten. Der Solarstromanteil ist eine Schätzung: Er wird proportional zum Verbrauch auf alle Bezüger verteilt, da die Zähler nur den Gesamtbezug messen. Der neue Prüfbericht ergänzt die bestehende Kontrolle; Berechnungen und Rechnungsdaten bleiben unverändert.</p></div>`;
+    $("invoicePreview").innerHTML=`<div class="card" style="margin-top:12px;box-shadow:none"><h3>Prüfübersicht · ${esc(period)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Gesamt</th><th>Auto (Easee)</th><th>Solar</th><th>Netz</th><th>Betrag</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td><b>${esc(x.customer.name)}</b></td><td>${fmtKwh(x.kwh)}</td><td>${fmtKwh(x.easeeKwh)} </td><td>${fmtKwh(x.solarKwh)}</td><td>${fmtKwh(x.gridKwh)}</td><td><b>${chf(x.total)}</b></td></tr>`).join("")}</tbody><tfoot><tr><th colspan="6">Total</th><th>${chf(sum)}</th></tr></tfoot></table></div>${auditHtml}<div class="toolbar"><button class="btn gold" id="draftViewBtn">Rechnungen ansehen / drucken</button><button class="btn" id="draftSaveBtn">Im Rechnungsregister speichern</button><button class="btn alt" id="auditCsvBtn">Prüfbericht als CSV</button></div><p class="small muted">Easee-Ladestrom wird auf der Rechnung separat ausgewiesen und zum Netzstromtarif berechnet. Der Solarstromanteil wird nur auf den Smart-me-Verbrauch geschätzt: Er wird proportional zum Verbrauch auf alle Bezüger verteilt, da die Zähler nur den Gesamtbezug messen. Der neue Prüfbericht ergänzt die bestehende Kontrolle; Berechnungen und Rechnungsdaten bleiben unverändert.</p></div>`;
     $("auditCsvBtn").onclick=()=>{
       const cell=v=>{let s=String(v??"");if(/^[=+@\-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
       const rows=[["Rechnungsnummer","Bezüger","Zähler","Bezug kWh","Solar kWh","Netz kWh","Betrag CHF","Prüfhinweise"],...audit.map(x=>[x.inv.invoiceNo,x.inv.customer.name,x.inv.customer.meterId,x.inv.kwh,x.inv.solarKwh,x.inv.gridKwh,x.inv.total,x.issues.join("; ")])];
