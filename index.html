@@ -229,10 +229,27 @@ tfoot th{color:#24715e}
   </section>
   <section class="panel" id="panel-easee">
     <div class="card">
-      <h3>Easee-Benutzer einmalig zuordnen</h3>
-      <p class="muted small">Ordne jeden Easee-Key (User Name ) einem bestehenden Bezüger und dessen Zähler zu. Es werden nur ausdrücklich zugeordnete Keys übernommen. Die Zuordnung wird dauerhaft in Firebase gespeichert.</p>
+      <h3>Direkte Easee-Verbindung</h3>
+      <p class="muted small">Verbinde dein eigenes Easee-Konto. Das Passwort wird nur für die Anmeldung verwendet und nicht gespeichert. Der erneuerte Token wird verschlüsselt im Cloudflare-Worker abgelegt.</p>
+      <div class="grid two">
+        <div class="field"><label for="easeeUsername">Easee-Benutzername / E-Mail</label><input id="easeeUsername" autocomplete="username" placeholder="Easee-Anmeldeadresse"></div>
+        <div class="field"><label for="easeePassword">Easee-Passwort</label><input id="easeePassword" type="password" autocomplete="current-password" placeholder="Passwort nur zur Verbindung"></div>
+      </div>
+      <div class="toolbar"><button class="btn" id="easeeConnectBtn">Easee verbinden</button><button class="btn alt" id="easeeRefreshSitesBtn">Verbindung prüfen</button><button class="btn danger" id="easeeDisconnectBtn">Verbindung trennen</button></div>
+      <p id="easeeApiMessage" class="small muted" aria-live="polite">Noch keine Easee-Verbindung eingerichtet.</p>
+      <div class="grid two" style="margin-top:12px">
+        <div class="field"><label for="easeeSiteId">Easee Site-ID</label><input id="easeeSiteId" placeholder="Wird nach der Verbindung automatisch erkannt"></div>
+        <div class="field"><label for="easeeApiFrom">Von (inklusive)</label><input id="easeeApiFrom" type="date"></div>
+        <div class="field"><label for="easeeApiTo">Bis (inklusive)</label><input id="easeeApiTo" type="date"></div>
+      </div>
+      <div class="toolbar"><button class="btn gold" id="easeeDirectImportBtn">Easee-Keys direkt abrufen</button></div>
+      <p class="muted small"><b>Automatischer Import:</b> Beim Erstellen einer Rechnung wird der Easee-Key-Summary-Report für das ausgewählte Quartal direkt abgerufen und gespeichert. Der manuelle Excel-Import ist danach nicht mehr nötig. Der Button unten bleibt für einen Test- oder Nachimport verfügbar.</p>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>Easee-Keys den Bezügern zuordnen</h3>
+      <p class="muted small">Ordne jeden gefundenen Easee-Key einem bestehenden Bezüger und dessen Zähler zu. Die Zuordnung wird dauerhaft in Firebase gespeichert und bei späteren Importen automatisch wiederverwendet.</p>
       <div id="easeeMappingList" class="empty">Noch keine Easee-Keys zugeordnet. Füge unten einen Key-Namen hinzu.</div>
-      <div class="toolbar"><input id="newEaseeKey" placeholder="Easee-Key, z. B. Werner" style="max-width:260px"><button class="btn alt" id="addEaseeKeyBtn">Key hinzufügen</button><button class="btn" id="saveEaseeMappingsBtn">Zuordnungen speichern</button></div>
+      <div class="toolbar"><input id="newEaseeKey" placeholder="Easee-Key / Username" style="max-width:260px"><button class="btn alt" id="addEaseeKeyBtn">Key hinzufügen</button><button class="btn" id="saveEaseeMappingsBtn">Zuordnungen speichern</button></div>
       <div id="easeeMappingMessage" class="small muted">Nur gespeicherte Keys werden importiert. Nicht zugeordnete Keys werden ignoriert.</div>
     </div>
     <div class="grid two" style="margin-top:14px">
@@ -318,6 +335,14 @@ async function solarDataRequest(path) {
   });
   const data = await response.json().catch(()=>({}));
   if (!response.ok) throw new Error(data.error || "Solar-Manager-Daten konnten nicht geladen werden.");
+  return data;
+}
+async function easeeApiRequest(path, method="GET", body=null) {
+  if (!currentUser) throw new Error("Bitte zuerst im SolarAbrechnung-Portal anmelden.");
+  const token=await currentUser.getIdToken();
+  const response=await fetch(SOLAR_API_BASE+path,{method,headers:{"Authorization":"Bearer "+token,"Accept":"application/json","Content-Type":"application/json"},...(body?{body:JSON.stringify(body)}:{})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok) throw new Error(data.error||"Easee-Anfrage fehlgeschlagen.");
   return data;
 }
 function quarterDates(period) {
@@ -452,6 +477,7 @@ async function loadAll() {
   try{ const iv=await getDocs(query(collection(db,"invoices"),where("ownerUid","==",uid))); invoices=iv.docs.map(d=>({id:d.id,...d.data()})); invoicesError=""; }
   catch(e){ invoices=[]; invoicesError=e.message; }
   renderAll();
+  loadEaseeConnection().catch(()=>{});
 }
 function periodValue(period) {
   const m=String(period||"").match(/(\d{4}).*?Q([1-4])/i);
@@ -623,16 +649,61 @@ document.addEventListener("change",e=>{const el=e.target.closest("[data-easee-ma
 document.addEventListener("click",e=>{const el=e.target.closest("[data-easee-remove]");if(el){delete easeeMappings[el.dataset.easeeRemove];renderEaseeMappings();}});
 $("saveEaseeMappingsBtn").onclick=async()=>{try{const cleaned={};for(const [key,id] of Object.entries(easeeMappings)){if(!String(id||"").trim())continue;if(!customers.some(c=>c.id===id))throw new Error(`Die Zuordnung für den Easee-Key «${key}» verweist auf keinen vorhandenen Bezüger mehr.`);cleaned[key]=id;}easeeMappings=cleaned;await setDoc(doc(db,"easeeMappings",currentUser.uid),{ownerUid:currentUser.uid,mappings:easeeMappings,updatedAt:serverTimestamp()});renderEaseeMappings();say("easeeMappingMessage","Easee-Key-Zuordnungen gespeichert. Nicht zugeordnete Keys werden ignoriert.","ok");}catch(e){say("easeeMappingMessage",e.message,"error");}};
 
+function setEaseeQuarterDefaults(){
+  const now=new Date(),q=Math.floor(now.getMonth()/3),start=new Date(now.getFullYear(),q*3,1),end=new Date(now.getFullYear(),q*3+3,0);
+  const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  if(!$("easeeApiFrom").value) $("easeeApiFrom").value=iso(start);
+  if(!$("easeeApiTo").value) $("easeeApiTo").value=iso(end);
+}
+async function loadEaseeConnection(){
+  const data=await easeeApiRequest("/api/easee-connection");
+  if(data.connected){$("easeeApiMessage").textContent="Easee-Konto ist sicher verbunden.";$("easeeApiMessage").className="small";}
+  else {$("easeeApiMessage").textContent="Noch keine Easee-Verbindung eingerichtet.";$("easeeApiMessage").className="small muted";}
+  return data;
+}
+$("easeeConnectBtn").onclick=async()=>{
+  try{
+    const userName=$("easeeUsername").value.trim(),password=$("easeePassword").value;
+    if(!userName||!password)throw new Error("Bitte Easee-Benutzername und Passwort eingeben.");
+    $("easeeConnectBtn").disabled=true;$("easeeApiMessage").textContent="Easee-Konto wird geprüft …";
+    const data=await easeeApiRequest("/api/easee-connection","POST",{userName,password});
+    $("easeePassword").value="";
+    if(data.sites?.length)$("easeeSiteId").value=String(data.sites[0].siteId||data.sites[0].id||"");
+    $("easeeApiMessage").textContent="Easee-Konto erfolgreich verbunden. Der Zugangstoken wurde verschlüsselt gespeichert.";
+    $("easeeApiMessage").className="small";
+  }catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}
+  finally{$("easeeConnectBtn").disabled=false;}
+};
+$("easeeRefreshSitesBtn").onclick=async()=>{try{const d=await loadEaseeConnection();if(d.connected){const sites=await easeeApiRequest("/api/easee-sites");if(sites.sites?.length){const match=sites.sites.find(x=>String(x.siteId||x.id)===$("easeeSiteId").value)||sites.sites[0];$("easeeSiteId").value=String(match.siteId||match.id||"");}$("easeeApiMessage").textContent="Easee-Verbindung geprüft.";}}catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}};
+$("easeeDisconnectBtn").onclick=async()=>{if(!confirm("Easee-Verbindung wirklich trennen und gespeicherten Token löschen?"))return;try{await easeeApiRequest("/api/easee-connection","DELETE");$("easeeApiMessage").textContent="Easee-Verbindung getrennt. Die gespeicherten Importdaten und Key-Zuordnungen bleiben erhalten.";}catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}};
+$("easeeDirectImportBtn").onclick=async()=>{
+  try{
+    const siteId=$("easeeSiteId").value.trim(),from=$("easeeApiFrom").value,to=$("easeeApiTo").value;
+    if(!siteId||!from||!to)throw new Error("Bitte Site-ID sowie Von- und Bis-Datum eingeben.");
+    if(to<from)throw new Error("Das Bis-Datum darf nicht vor dem Von-Datum liegen.");
+    const periodStart=new Date(from+"T00:00:00Z"),periodEnd=new Date(to+"T00:00:00Z");
+    if(periodStart.getUTCFullYear()!==periodEnd.getUTCFullYear()||Math.floor(periodStart.getUTCMonth()/3)!==Math.floor(periodEnd.getUTCMonth()/3))throw new Error("Ein Easee-Import muss innerhalb eines Kalenderquartals liegen.");
+    $("easeeDirectImportBtn").disabled=true;$("easeeApiMessage").textContent="Easee-Key-Bericht wird direkt abgerufen …";
+    const result=await easeeApiRequest("/api/easee-export?"+new URLSearchParams({siteId,from,to}));
+    if(!result.fileBase64)throw new Error("Easee hat keine Excel-Datei zurückgegeben.");
+    const raw=atob(result.fileBase64),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    window.easeePendingApiFile=new File([bytes],`EaseeKeySummary_${from}_${to}.xlsx`,{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    $("easeeApiMessage").textContent="Bericht erhalten. Die bestehende Prüfung und Bezüger-Zuordnung wird gestartet …";
+    $("inspectEaseeBtn").click();
+  }catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}
+  finally{$("easeeDirectImportBtn").disabled=false;}
+};
+setEaseeQuarterDefaults();
 let pendingEaseeImport=null;
 $("inspectEaseeBtn").onclick=async()=>{
   try{
-    const file=$("easeeExcelFile").files[0];if(!file)throw new Error("Bitte zuerst den Easee-Excel-Export auswählen.");if(!window.XLSX)throw new Error("Excel-Bibliothek konnte nicht geladen werden. Bitte Seite neu laden.");
+    const file=window.easeePendingApiFile||$("easeeExcelFile").files[0];window.easeePendingApiFile=null;if(!file)throw new Error("Bitte zuerst den Easee-Excel-Export auswählen oder die direkte Easee-Verbindung verwenden.");if(!window.XLSX)throw new Error("Excel-Bibliothek konnte nicht geladen werden. Bitte Seite neu laden.");
     const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:false});const ws=wb.Sheets[wb.SheetNames[0]];
     const from=String(ws.G2?.v??"").trim(),to=String(ws.G3?.v??"").trim();
     if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to))throw new Error("Exportdatum in G2/G3 konnte nicht gelesen werden.");
     const start=new Date(from+"T00:00:00Z"),end=new Date(to+"T00:00:00Z");if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<start)throw new Error("Der Exportzeitraum ist ungültig.");
-    const period=`${start.getUTCFullYear()}Q${Math.floor(start.getUTCMonth()/3)+1}`;
-    const endPeriod=`${end.getUTCFullYear()}Q${Math.floor(end.getUTCMonth()/3)+1}`;if(period!==endPeriod)throw new Error("Der Easee-Export muss innerhalb eines Kalenderquartals liegen.");
+    const period=`${start.getUTCFullYear()} Q${Math.floor(start.getUTCMonth()/3)+1}`;
+    const endPeriod=`${end.getUTCFullYear()} Q${Math.floor(end.getUTCMonth()/3)+1}`;if(period!==endPeriod)throw new Error("Der Easee-Export muss innerhalb eines Kalenderquartals liegen.");
     const matrix=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});const headerIndex=matrix.findIndex(r=>r.some(v=>String(v).trim()==="User")&&r.some(v=>String(v).trim()==="Easee Key"));if(headerIndex<0)throw new Error("Die Spalten «User» und «Easee Key» wurden nicht gefunden.");
     const headers=matrix[headerIndex].map(v=>String(v).trim());const userCol=headers.indexOf("User"),keyCol=headers.indexOf("Easee Key"),energyCol=headers.indexOf("Energy (kWh)"),amountCol=headers.indexOf("Amount (ex.VAT) (CHF)");if(userCol<0||keyCol<0||energyCol<0)throw new Error("Spalten «Easee Key» oder «Energy (kWh)» fehlen.");
     const byKey={};for(const row of matrix.slice(headerIndex+1)){const username=String(row[userCol]??"").trim(),keyName=String(row[keyCol]??"").trim();if(!keyName)continue;const kwh=Number(String(row[energyCol]).replace(",","."));if(!Number.isFinite(kwh)||kwh<0)continue;byKey[keyName]??={kwh:0,amountChf:0,userNames:[]};byKey[keyName].kwh+=kwh;if(username&&!byKey[keyName].userNames.includes(username))byKey[keyName].userNames.push(username);if(amountCol>=0){const a=Number(String(row[amountCol]).replace(",","."));if(Number.isFinite(a))byKey[keyName].amountChf+=a;}}
@@ -641,13 +712,63 @@ $("inspectEaseeBtn").onclick=async()=>{
     const unknown=keys.filter(k=>!Object.prototype.hasOwnProperty.call(easeeMappings,k));if(unknown.length){unknown.forEach(k=>{easeeMappings[k]="";});renderEaseeMappings();}
     const selected=keys.filter(k=>String(easeeMappings[k]||"").trim());if(!selected.length){throw new Error("Neue Easee-Keys erkannt: "+keys.join(", ") + ". Bitte nur die gewünschten Keys oben zuordnen und speichern, danach die Datei erneut prüfen. Nicht zugeordnete Keys werden ignoriert.");}
     const grouped={};for(const keyName of selected){const v=byKey[keyName];const customer=customers.find(c=>c.id===easeeMappings[keyName]);if(!customer)throw new Error(`Der Bezüger für Easee-Key «${keyName}» wurde nicht gefunden. Bitte Zuordnung prüfen.`);grouped[customer.propertyId]??={rows:[],users:[]};const group=grouped[customer.propertyId];let row=group.rows.find(r=>r.meterId===String(customer.meterId));if(!row){row={meterId:String(customer.meterId),customerId:customer.id,customerName:customer.name,propertyId:customer.propertyId,kwh:0,easeeUsers:[]};group.rows.push(row);}row.kwh+=v.kwh;row.easeeUsers.push(keyName);group.users.push({username:keyName,keyNames:[keyName],sourceUsers:v.userNames,kwh:v.kwh,amountChf:v.amountChf,customerName:customer.name,meterId:customer.meterId});}
-    pendingEaseeImport={period,start:from,end:to,fileName:file.name,reportTotal,selectedKeyTotal:selected.reduce((sum,k)=>sum+byKey[k].kwh,0),byProperty:grouped};$("saveEaseeImportBtn").disabled=false;
+    pendingEaseeImport={period,start:from,end:to,fileName:file.name,reportTotal,selectedKeyTotal:selected.reduce((sum,k)=>sum+byKey[k].kwh,0),byProperty:grouped,unmappedKeys:unknown};$("saveEaseeImportBtn").disabled=false;
     const display=Object.values(grouped).flatMap(g=>g.users);const ignored=keys.filter(k=>!selected.includes(k));
     $("easeeImportMessage").textContent=`${selected.length} zugeordnete Easee-Keys übernommen · ${period} · ${pendingEaseeImport.selectedKeyTotal.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh${ignored.length?` · ${ignored.length} nicht zugeordnete Keys ignoriert`:""}`;
     $("easeeImportPreview").className="table-wrap";$("easeeImportPreview").innerHTML=`<table><thead><tr><th>Easee-Key</th><th>Excel-User (nur Info)</th><th>Bezüger</th><th>Zähler</th><th>Verbrauch</th><th>Betrag im Export</th></tr></thead><tbody>${display.map(x=>`<tr><td><b>${esc(x.username)}</b></td><td>${esc(x.sourceUsers.join(", "))}</td><td>${esc(x.customerName)}</td><td>${esc(x.meterId)}</td><td>${x.kwh.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</td><td>CHF ${x.amountChf.toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`).join("")}</tbody><tfoot><tr><th colspan="3">Ausgewählte Keys</th><th>${pendingEaseeImport.selectedKeyTotal.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</th><th>Bericht gesamt: ${reportTotal.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</th></tr></tfoot></table>`;
   }catch(e){pendingEaseeImport=null;$("saveEaseeImportBtn").disabled=true;say("easeeImportMessage",e.message,"error");}
 };
 $("saveEaseeImportBtn").onclick=async()=>{try{if(!pendingEaseeImport)throw new Error("Bitte zuerst die Easee-Datei prüfen.");for(const [propertyId,data] of Object.entries(pendingEaseeImport.byProperty)){const overlaps=easeeImports.filter(x=>x.propertyId===propertyId&&x.period===pendingEaseeImport.period&&String(x.start||"")<=pendingEaseeImport.end&&String(x.end||"")>=pendingEaseeImport.start);if(overlaps.length&&!confirm(`Für ${pendingEaseeImport.period} gibt es bereits einen Easee-Import mit überlappendem Zeitraum. Den überlappenden Import ersetzen?`))return;for(const old of overlaps)await deleteDoc(doc(db,"easeeImports",old.id));const id=`${currentUser.uid}_${propertyId}_${pendingEaseeImport.period}_${pendingEaseeImport.start}_${pendingEaseeImport.end}`;await setDoc(doc(db,"easeeImports",id),{ownerUid:currentUser.uid,propertyId,period:pendingEaseeImport.period,start:pendingEaseeImport.start,end:pendingEaseeImport.end,fileName:pendingEaseeImport.fileName,rows:data.rows,easeeUsers:data.users,reportTotalKwh:pendingEaseeImport.reportTotal,createdAt:serverTimestamp()});}say("easeeImportMessage",`Easee-Verbrauch für ${pendingEaseeImport.period} gespeichert. Er wird beim Erstellen der Rechnung automatisch berücksichtigt.`,"ok");pendingEaseeImport=null;$("saveEaseeImportBtn").disabled=true;await loadAll();}catch(e){say("easeeImportMessage",e.message,"error");}};
+
+// Automatischer Easee-Import beim Erstellen einer Rechnung.
+async function autoImportEaseeForPeriod(propertyId, period) {
+  const connection = await loadEaseeConnection();
+  if (!connection.connected) return { connected:false, imported:false };
+  const siteId = String($("easeeSiteId").value || "").trim();
+  if (!siteId) throw new Error("Keine Easee-Site gefunden. Bitte unter «Easee» einmal «Verbindung prüfen» ausführen.");
+  const range = quarterDates(period);
+  const from = range.from.slice(0,10), to = range.to.slice(0,10);
+  $("easeeApiMessage").textContent = `Easee-Daten für ${period} werden automatisch abgerufen …`;
+  const report = await easeeApiRequest("/api/easee-export?" + new URLSearchParams({siteId,from,to}));
+  if (!report.fileBase64) throw new Error("Easee hat keinen auswertbaren Key-Bericht geliefert.");
+  const binary = atob(report.fileBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+  window.easeePendingApiFile = new File([bytes], report.fileName || `EaseeKeySummary_${from}_${to}.xlsx`, {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  await $("inspectEaseeBtn").onclick();
+  if (!pendingEaseeImport) {
+    const detail = $("easeeImportMessage").textContent || "Easee-Bericht konnte nicht geprüft werden.";
+    throw new Error(detail + (detail.includes("zuordnen") ? " Bitte die neuen Keys zuordnen und die Rechnung danach erneut erstellen." : ""));
+  }
+  // Neue Keys dürfen nicht stillschweigend ausgelassen werden: zuerst einmalig zuordnen.
+  if (pendingEaseeImport.unmappedKeys?.length) {
+    const newKeys = pendingEaseeImport.unmappedKeys.join(", ");
+    throw new Error("Neue Easee-Keys erkannt: " + newKeys + ". Bitte diese Keys einmalig den Bezügern zuordnen und speichern. Danach die Rechnung erneut erstellen.");
+  }
+  // Nur Daten der aktuell ausgewählten Liegenschaft in diesem Rechnungslauf speichern.
+  const selected = pendingEaseeImport.byProperty[propertyId];
+  if (!selected || !selected.rows.length) {
+    pendingEaseeImport = null;
+    throw new Error("Für diese Liegenschaft wurden im Easee-Bericht keine zugeordneten Keys gefunden.");
+  }
+  const existing = await getDocs(query(collection(db,"easeeImports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)));
+  for (const old of existing.docs) await deleteDoc(doc(db,"easeeImports",old.id));
+  const id = `${currentUser.uid}_${propertyId}_${period}_${from}_${to}`;
+  await setDoc(doc(db,"easeeImports",id),{
+    ownerUid:currentUser.uid, propertyId, period, start:from, end:to,
+    fileName:pendingEaseeImport.fileName, rows:selected.rows, easeeUsers:selected.users,
+    reportTotalKwh:pendingEaseeImport.reportTotal,
+    importedAutomatically:true, createdAt:serverTimestamp()
+  });
+  const total = selected.rows.reduce((sum,row)=>sum+Number(row.kwh||0),0);
+  pendingEaseeImport = null;
+  window.easeePendingApiFile = null;
+  await loadAll();
+  $("easeeApiMessage").textContent = `Easee-Import für ${period} automatisch gespeichert · ${total.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh.`;
+  $("easeeApiMessage").className="small";
+  return {connected:true, imported:true, totalKwh:total};
+}
+
 
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===b));
@@ -1112,6 +1233,10 @@ $("createInvoiceBtn").onclick=async()=>{
   try {
     const propertyId=$("invoiceProperty").value, period=$("invoicePeriod").value;
     if(!propertyId||!period) throw new Error("Für diese Liegenschaft wurden noch keine Messdaten importiert.");
+    msg("Easee-Verbrauch wird automatisch aktualisiert …");
+    let easeeAutoResult={connected:false,imported:false};
+    try { easeeAutoResult = await autoImportEaseeForPeriod(propertyId,period); }
+    catch(e) { throw new Error("Automatischer Easee-Import fehlgeschlagen: " + e.message); }
     const [snap,easeeSnap]=await Promise.all([
       getDocs(query(collection(db,"imports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period))),
       getDocs(query(collection(db,"easeeImports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)))
@@ -1137,7 +1262,7 @@ $("createInvoiceBtn").onclick=async()=>{
     const dev=Math.abs(totalSmartme-fig.consumption)/fig.consumption*100;
     draftInvoices=list; draftMeta={propertyId,period};
     const devCombined=Math.abs(totalCombined-fig.consumption)/fig.consumption*100;
-    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me ${fmtKwh(totalSmartme)} + Easee ${fmtKwh(totalEasee)} = ${fmtKwh(totalCombined)}. Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(devCombined>5?` Achtung: Die Summen weichen um ${fmtPct(devCombined)} ab – bitte vor dem Versand prüfen.`:""),devCombined>5?"":"ok");
+    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me ${fmtKwh(totalSmartme)} + Easee ${fmtKwh(totalEasee)} = ${fmtKwh(totalCombined)}. ${easeeAutoResult.imported?"Easee wurde automatisch aktualisiert. ":"Kein neuer Easee-Import (bestehende Daten werden verwendet). "}Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(devCombined>5?` Achtung: Die Summen weichen um ${fmtPct(devCombined)} ab – bitte vor dem Versand prüfen.`:""),devCombined>5?"":"ok");
     const sum=list.reduce((s,x)=>s+x.total,0);
     // Zusätzlicher Abrechnungscheck: Hinweise anzeigen, ohne bestehende Berechnungen zu verändern.
     const audit=list.map(inv=>{
