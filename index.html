@@ -231,9 +231,9 @@ tfoot th{color:#24715e}
     <div class="card">
       <h3>Direkte Easee-Verbindung</h3>
       <p class="muted small">Verbinde dein eigenes Easee-Konto. Das Passwort wird nur für die Anmeldung verwendet und nicht gespeichert. Der erneuerte Token wird verschlüsselt im Cloudflare-Worker abgelegt.</p>
-      <div class="grid two" id="easeeCredentials">
+      <div class="grid two" id="easeeCredentialsFields">
         <div class="field"><label for="easeeUsername">Easee-Benutzername / E-Mail</label><input id="easeeUsername" autocomplete="username" placeholder="Easee-Anmeldeadresse"></div>
-        <div class="field"><label for="easeePassword">Easee-Passwort</label><input id="easeePassword" type="password" autocomplete="current-password" placeholder="Passwort nur zur erstmaligen Verbindung"></div>
+        <div class="field"><label for="easeePassword">Easee-Passwort</label><input id="easeePassword" type="password" autocomplete="current-password" placeholder="Passwort nur zur Verbindung"></div>
       </div>
       <div class="toolbar"><button class="btn" id="easeeConnectBtn">Easee verbinden</button><button class="btn alt" id="easeeRefreshSitesBtn">Verbindung prüfen</button><button class="btn danger" id="easeeDisconnectBtn">Verbindung trennen</button></div>
       <p id="easeeApiMessage" class="small muted" aria-live="polite">Noch keine Easee-Verbindung eingerichtet.</p>
@@ -658,18 +658,18 @@ function setEaseeQuarterDefaults(){
   if(!$("easeeApiFrom").value) $("easeeApiFrom").value=iso(start);
   if(!$("easeeApiTo").value) $("easeeApiTo").value=iso(end);
 }
+function renderEaseeConnectionState(connected){
+  const credentials=$("easeeCredentialsFields");
+  if(credentials) credentials.style.display=connected?"none":"grid";
+  $("easeeConnectBtn").style.display=connected?"none":"";
+  $("easeeRefreshSitesBtn").style.display=connected?"":"none";
+  $("easeeDisconnectBtn").style.display=connected?"":"none";
+}
 async function loadEaseeConnection(){
   const data=await easeeApiRequest("/api/easee-connection");
-  $("easeeCredentials").classList.toggle("hidden",!!data.connected);
-  $("easeeConnectBtn").classList.toggle("hidden",!!data.connected);
-  if(data.connected){
-    if(data.siteId) $("easeeSiteId").value=String(data.siteId);
-    $("easeeApiMessage").textContent="Easee-Konto ist dauerhaft gespeichert und verbunden. Eine erneute Passworteingabe ist nicht nötig.";
-    $("easeeApiMessage").className="small";
-  } else {
-    $("easeeCredentials").classList.remove("hidden");$("easeeConnectBtn").classList.remove("hidden");
-    $("easeeApiMessage").textContent="Noch keine Easee-Verbindung eingerichtet.";$("easeeApiMessage").className="small muted";
-  }
+  renderEaseeConnectionState(!!data.connected);
+  if(data.connected){$("easeeApiMessage").textContent="Easee-Konto ist dauerhaft und sicher verbunden. Zugangsdaten müssen nicht erneut eingegeben werden.";$("easeeApiMessage").className="small";}
+  else {$("easeeApiMessage").textContent="Noch keine Easee-Verbindung eingerichtet. Bitte Easee-Benutzername und Passwort eingeben.";$("easeeApiMessage").className="small muted";}
   return data;
 }
 $("easeeConnectBtn").onclick=async()=>{
@@ -679,16 +679,15 @@ $("easeeConnectBtn").onclick=async()=>{
     $("easeeConnectBtn").disabled=true;$("easeeApiMessage").textContent="Easee-Konto wird geprüft …";
     const data=await easeeApiRequest("/api/easee-connection","POST",{userName,password});
     $("easeePassword").value="";
-    if(data.siteId)$("easeeSiteId").value=String(data.siteId);
-    else if(data.sites?.length)$("easeeSiteId").value=String(data.sites[0].siteId||data.sites[0].id||"");
-    await loadEaseeConnection();
-    $("easeeApiMessage").textContent="Easee-Konto dauerhaft verbunden. Token und Site-ID sind gespeichert.";
+    if(data.sites?.length)$("easeeSiteId").value=String(data.sites[0].siteId||data.sites[0].id||"");
+    renderEaseeConnectionState(true);
+    $("easeeApiMessage").textContent="Easee-Konto erfolgreich verbunden. Der Zugangstoken wurde verschlüsselt gespeichert. Eine erneute Eingabe der Zugangsdaten ist nicht nötig.";
     $("easeeApiMessage").className="small";
   }catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}
   finally{$("easeeConnectBtn").disabled=false;}
 };
 $("easeeRefreshSitesBtn").onclick=async()=>{try{const d=await loadEaseeConnection();if(d.connected){const sites=await easeeApiRequest("/api/easee-sites");if(sites.sites?.length){const match=sites.sites.find(x=>String(x.siteId||x.id)===$("easeeSiteId").value)||sites.sites[0];$("easeeSiteId").value=String(match.siteId||match.id||"");}$("easeeApiMessage").textContent="Easee-Verbindung geprüft.";}}catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}};
-$("easeeDisconnectBtn").onclick=async()=>{if(!confirm("Easee-Verbindung wirklich trennen und gespeicherten Token löschen?"))return;try{await easeeApiRequest("/api/easee-connection","DELETE");await loadEaseeConnection();$("easeeApiMessage").textContent="Easee-Verbindung getrennt. Die gespeicherten Importdaten und Key-Zuordnungen bleiben erhalten.";}catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}};
+$("easeeDisconnectBtn").onclick=async()=>{if(!confirm("Easee-Verbindung wirklich trennen und gespeicherten Token löschen?"))return;try{await easeeApiRequest("/api/easee-connection","DELETE");renderEaseeConnectionState(false);$("easeeApiMessage").textContent="Easee-Verbindung getrennt. Die gespeicherten Importdaten und Key-Zuordnungen bleiben erhalten.";}catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}};
 $("easeeDirectImportBtn").onclick=async()=>{
   try{
     const siteId=$("easeeSiteId").value.trim(),from=$("easeeApiFrom").value,to=$("easeeApiTo").value;
