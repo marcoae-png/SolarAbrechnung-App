@@ -1059,6 +1059,20 @@ table.e td small{display:block;color:#64766f;font-size:7pt}
 .pay .a .h{font-size:8pt;line-height:11pt}.pay .a .v{font-size:10pt;line-height:11pt}
 .pay .r{position:absolute;left:56mm;top:5mm;width:87mm}.pay .r .h{font-size:8pt;line-height:11pt;margin-top:3mm}.pay .r .v{font-size:10pt;line-height:11pt}
 .pay h5{margin-bottom:0}
+.share-bar{height:2.6mm;background:#c9a765;border-radius:1.5mm;overflow:hidden;margin:1mm 0}.share-bar i{display:block;height:100%;background:#24715e}
+.diag-row{display:block}
+.compact .body{padding-top:6mm}
+.compact .top{padding-bottom:2mm}.compact .logo i{width:9mm;height:9mm}.compact .title h1{font-size:19pt}
+.compact .meta{margin:2mm 0}.compact .addr{margin-bottom:2mm}.compact .period{margin-bottom:2mm;padding:1.4mm 4mm}
+.compact table.e td{padding:.6mm 0}.compact table.e th{padding:1mm 0}
+.compact .diag-row{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin:2mm 0 1.5mm}
+.compact .diag-row>div:only-child{grid-column:1/-1}
+.compact .diag-row>div{margin:0!important;padding:1.8mm 2.5mm!important}
+.compact .consumption-share{margin:0}
+.compact h3{margin-bottom:1mm}
+.compact .plant{margin:1mm 0;gap:2mm}.compact .plant div{padding:1.4mm 2.2mm}.compact .plant b{font-size:10pt}
+.compact .use{padding:1mm 3mm;margin-top:1mm}.compact .mon{margin-top:.8mm;padding-top:.6mm}
+.compact .body{padding-top:5mm}.compact .meta{margin:1.5mm 0}.compact .addr{margin-bottom:1.5mm;gap:6mm}.compact .period{margin-bottom:1.5mm;padding:1mm 4mm}.compact table.e td{padding:.4mm 0}.compact .diag-row{margin:1.5mm 0 1mm}.compact h3[style]{margin-top:1.5mm!important}.compact .plant div{padding:1mm 2.2mm}.compact .plant small{font-size:5.8pt}.compact .use .l{margin:.6mm 0}
 `;
 const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"/></svg>';
 const lines=o=>[[o.street,o.house].filter(Boolean).join(" "),[o.postal,o.city].filter(Boolean).join(" ")].filter(Boolean);
@@ -1075,7 +1089,7 @@ function invoicePage(inv){
   const debtor=hasDebtor?block(d.name,...dLines):"";
   const ref=inv.refType==="NON"?"":`<span class="h">Referenz</span><div class="v">${esc(inv.referenceDisplay)}</div>`;
   const amt=slipAmount(inv.total);
-  return `<section class="page"><div class="body">
+  return `<section class="page compact"><div class="body">
   <div class="top"><div class="logo"><i>${SUN}</i><div><b>${esc(c.name)}</b><small>${esc(cLines.join(" · "))}</small></div></div>
    <div class="title"><small>Stromabrechnung</small><h1>Rechnung</h1></div></div>
   <div class="meta"><div><small>Rechnungsnummer</small><b>${esc(inv.invoiceNo)}</b></div><div><small>Rechnungsdatum</small><b>${isoToCh(inv.date)}</b></div><div><small>Zahlbar bis</small><b>${isoToCh(inv.dueDate)}</b></div></div>
@@ -1090,7 +1104,7 @@ function invoicePage(inv){
    ${inv.reduction>0?`<tr><td>Reduktion${inv.reductionMode==="percent"?` (${num2(inv.reductionValue)} %)`:" (Pauschalabzug)"}</td><td></td><td></td><td>− ${chf(inv.reduction)}</td></tr>`:""}
    ${inv.rent>0?`<tr><td>Zählermiete</td><td></td><td></td><td>${chf(inv.rent)}</td></tr>`:""}
    <tr class="total"><td colspan="3">Zu bezahlen${inv.benefit>0?`<div class="good" style="font-weight:400;margin-top:.5mm">Vorteil durch Solarstrom: ${chf(inv.benefit)}</div>`:""}</td><td>${chf(inv.total)}</td></tr></tbody></table>
-  ${inv.easeeKwh>0?`<div class="easee-share" style="margin:3mm 0 2mm;padding:2.5mm 3mm;border:1px solid #d8e3de;border-radius:2mm;break-inside:avoid"><div style="font-size:8pt;font-weight:700;margin-bottom:1.5mm">Easee · Stromverbrauch des Elektroautos</div><div style="display:flex;justify-content:space-between;font-size:7pt;margin-bottom:1mm"><b style="color:#24715e">Solarstrom ${inv.easeeSolarPct.toFixed(1)} %</b><b style="color:#80652f">Netzstrom ${(100-inv.easeeSolarPct).toFixed(1)} %</b></div><div style="height:3mm;background:#c9a765;border-radius:2mm;overflow:hidden;display:flex"><i style="display:block;height:100%;width:${Math.max(0,Math.min(100,inv.easeeSolarPct)).toFixed(2)}%;background:#24715e"></i></div><div style="display:flex;justify-content:space-between;gap:3mm;font-size:7pt;margin-top:1.5mm;color:#43564f"><span>Solar: ${num2(inv.easeeSolarKwh)} kWh</span><span>Netz: ${num2(inv.easeeGridKwh)} kWh</span><b>Total: ${num2(inv.easeeKwh)} kWh</b></div></div>`:""}
+  <div class="diag-row"><div class="consumption-share" style="display:block"><div class="share-title">Solarstrom</div><div class="share-legend" style="margin-bottom:1mm"><span>Anteil am Verbrauch · <b style="color:#24715e">Solar ${solarPct.toFixed(1)} %</b> · <b style="color:#80652f">Netz ${gridPct.toFixed(1)} %</b></span></div><div class="share-bar"><i style="width:${solarPct.toFixed(2)}%"></i></div><div class="share-saving">Solarstrom ${num2(inv.cheaperPct)} % günstiger als Netzstrom</div></div>${inv.easeeKwh>0?`<div class="easee-share" style="margin:3mm 0 2mm;padding:2.5mm 3mm;border:1px solid #d8e3de;border-radius:2mm;break-inside:avoid"><div style="font-size:8pt;font-weight:700;margin-bottom:1.5mm">Easee · Stromverbrauch des Elektroautos</div><div style="display:flex;justify-content:space-between;font-size:7pt;margin-bottom:1mm"><b style="color:#24715e">Solarstrom ${inv.easeeSolarPct.toFixed(1)} %</b><b style="color:#80652f">Netzstrom ${(100-inv.easeeSolarPct).toFixed(1)} %</b></div><div style="height:3mm;background:#c9a765;border-radius:2mm;overflow:hidden;display:flex"><i style="display:block;height:100%;width:${Math.max(0,Math.min(100,inv.easeeSolarPct)).toFixed(2)}%;background:#24715e"></i></div><div style="display:flex;justify-content:space-between;gap:3mm;font-size:7pt;margin-top:1.5mm;color:#43564f"><span>Solar: ${num2(inv.easeeSolarKwh)} kWh</span><span>Netz: ${num2(inv.easeeGridKwh)} kWh</span><b>Total: ${num2(inv.easeeKwh)} kWh</b></div></div>`:""}</div>
   <h3 style="margin-top:3mm;display:flex;justify-content:space-between;align-items:baseline">Gesamte Solaranlage · ${esc(inv.periodLabel)}<span class="note" style="margin:0;font-weight:400">Anlagenwerte; oben: Anteil dieses Bezügers</span></h3>
   <div class="plant"><div class="p1"><small>Autarkiegrad der Anlage</small><b>${p.autarky.toFixed(2)} %</b><span>${num2(p.selfUse)} von ${num2(p.consumption)} kWh Gesamtverbrauch</span></div>
    <div class="p2"><small>Eigenverbrauchsanteil der Produktion</small><b>${p.selfRate.toFixed(2)} %</b><span>${num2(p.selfUse)} von ${num2(p.production)} kWh Solarproduktion</span></div>
