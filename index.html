@@ -231,7 +231,7 @@ tfoot th{color:#24715e}
     <div class="card">
       <h3>Direkte Easee-Verbindung</h3>
       <p class="muted small">Verbinde dein eigenes Easee-Konto. Das Passwort wird nur für die Anmeldung verwendet und nicht gespeichert. Der erneuerte Token wird verschlüsselt im Cloudflare-Worker abgelegt.</p>
-      <div class="grid two" id="easeeCredentialsFields">
+      <div class="grid two">
         <div class="field"><label for="easeeUsername">Easee-Benutzername / E-Mail</label><input id="easeeUsername" autocomplete="username" placeholder="Easee-Anmeldeadresse"></div>
         <div class="field"><label for="easeePassword">Easee-Passwort</label><input id="easeePassword" type="password" autocomplete="current-password" placeholder="Passwort nur zur Verbindung"></div>
       </div>
@@ -268,7 +268,7 @@ tfoot th{color:#24715e}
   <section class="panel" id="panel-invoices">
     <div class="card"><h3>Rechnungen erstellen</h3><p class="muted small">Liegenschaft und das neueste importierte Quartal werden automatisch erkannt. Die Solar-Manager-Daten werden beim Erstellen abgerufen.</p>
       <div class="field"><label for="invoiceProperty">Liegenschaft</label><select id="invoiceProperty"></select></div>
-      <div class="field"><label for="invoicePeriod">Abrechnungsquartal</label><input id="invoicePeriod" type="text" readonly placeholder="Wird automatisch erkannt"></div>
+      <div class="field"><label for="invoicePeriod">Abrechnungsquartal</label><select id="invoicePeriod" aria-label="Abrechnungsquartal"><option value="">Wird automatisch erkannt</option></select></div>
       <button class="btn" id="createInvoiceBtn">Rechnungen erstellen</button><div id="invoiceMessage" class="alert" style="display:none"></div><div id="invoicePreview"></div>
     </div>
     <div class="card" style="margin-top:15px"><h3>Rechnungsregister</h3><div id="invoiceList" class="empty">Noch keine definitiven Rechnungen vorhanden.</div></div>
@@ -489,11 +489,16 @@ function periodValue(period) {
   return d ? Number(d[1])*10+Math.ceil(Number(d[2])/3) : 0;
 }
 function refreshInvoicePeriod() {
+  const select=$("invoicePeriod");
   const propertyId=$("invoiceProperty").value;
+  const previous=select.value;
   const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean))];
   periods.sort((a,b)=>periodValue(b)-periodValue(a));
-  $("invoicePeriod").value=periods[0]||"";
-  $("invoicePeriod").placeholder=periods.length?"Automatisch erkannt":"Noch keine Messdaten für diese Liegenschaft";
+  select.innerHTML=periods.length
+    ? periods.map(period=>`<option value="${esc(period)}">${esc(period)}</option>`).join("")
+    : '<option value="">Noch keine Messdaten importiert</option>';
+  select.disabled=!periods.length;
+  select.value=periods.includes(previous)?previous:(periods[0]||"");
 }
 function renderAll() {
   $("mProperties").textContent=properties.length;
@@ -658,18 +663,10 @@ function setEaseeQuarterDefaults(){
   if(!$("easeeApiFrom").value) $("easeeApiFrom").value=iso(start);
   if(!$("easeeApiTo").value) $("easeeApiTo").value=iso(end);
 }
-function renderEaseeConnectionState(connected){
-  const credentials=$("easeeCredentialsFields");
-  if(credentials) credentials.style.display=connected?"none":"grid";
-  $("easeeConnectBtn").style.display=connected?"none":"";
-  $("easeeRefreshSitesBtn").style.display=connected?"":"none";
-  $("easeeDisconnectBtn").style.display=connected?"":"none";
-}
 async function loadEaseeConnection(){
   const data=await easeeApiRequest("/api/easee-connection");
-  renderEaseeConnectionState(!!data.connected);
-  if(data.connected){$("easeeApiMessage").textContent="Easee-Konto ist dauerhaft und sicher verbunden. Zugangsdaten müssen nicht erneut eingegeben werden.";$("easeeApiMessage").className="small";}
-  else {$("easeeApiMessage").textContent="Noch keine Easee-Verbindung eingerichtet. Bitte Easee-Benutzername und Passwort eingeben.";$("easeeApiMessage").className="small muted";}
+  if(data.connected){$("easeeApiMessage").textContent="Easee-Konto ist sicher verbunden.";$("easeeApiMessage").className="small";}
+  else {$("easeeApiMessage").textContent="Noch keine Easee-Verbindung eingerichtet.";$("easeeApiMessage").className="small muted";}
   return data;
 }
 $("easeeConnectBtn").onclick=async()=>{
@@ -680,14 +677,13 @@ $("easeeConnectBtn").onclick=async()=>{
     const data=await easeeApiRequest("/api/easee-connection","POST",{userName,password});
     $("easeePassword").value="";
     if(data.sites?.length)$("easeeSiteId").value=String(data.sites[0].siteId||data.sites[0].id||"");
-    renderEaseeConnectionState(true);
-    $("easeeApiMessage").textContent="Easee-Konto erfolgreich verbunden. Der Zugangstoken wurde verschlüsselt gespeichert. Eine erneute Eingabe der Zugangsdaten ist nicht nötig.";
+    $("easeeApiMessage").textContent="Easee-Konto erfolgreich verbunden. Der Zugangstoken wurde verschlüsselt gespeichert.";
     $("easeeApiMessage").className="small";
   }catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}
   finally{$("easeeConnectBtn").disabled=false;}
 };
 $("easeeRefreshSitesBtn").onclick=async()=>{try{const d=await loadEaseeConnection();if(d.connected){const sites=await easeeApiRequest("/api/easee-sites");if(sites.sites?.length){const match=sites.sites.find(x=>String(x.siteId||x.id)===$("easeeSiteId").value)||sites.sites[0];$("easeeSiteId").value=String(match.siteId||match.id||"");}$("easeeApiMessage").textContent="Easee-Verbindung geprüft.";}}catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}};
-$("easeeDisconnectBtn").onclick=async()=>{if(!confirm("Easee-Verbindung wirklich trennen und gespeicherten Token löschen?"))return;try{await easeeApiRequest("/api/easee-connection","DELETE");renderEaseeConnectionState(false);$("easeeApiMessage").textContent="Easee-Verbindung getrennt. Die gespeicherten Importdaten und Key-Zuordnungen bleiben erhalten.";}catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}};
+$("easeeDisconnectBtn").onclick=async()=>{if(!confirm("Easee-Verbindung wirklich trennen und gespeicherten Token löschen?"))return;try{await easeeApiRequest("/api/easee-connection","DELETE");$("easeeApiMessage").textContent="Easee-Verbindung getrennt. Die gespeicherten Importdaten und Key-Zuordnungen bleiben erhalten.";}catch(e){$("easeeApiMessage").textContent=e.message;$("easeeApiMessage").className="small alert error";}};
 $("easeeDirectImportBtn").onclick=async()=>{
   try{
     const siteId=$("easeeSiteId").value.trim(),from=$("easeeApiFrom").value,to=$("easeeApiTo").value;
@@ -1224,130 +1220,4 @@ async function mailInvoice(inv){
     // Handy/Tablet: Teilen-Dialog mit PDF-Anhang
     const file=new File([pdf],fileName,{type:"application/pdf"});
     if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)&&navigator.canShare?.({files:[file]})){
-      await navigator.share({files:[file],title:subject,text});
-      info("Teilen-Dialog geöffnet. Empfänger: "+(to||"bitte manuell eintragen"),"ok");
-      return;
-    }
-
-    // Desktop: .eml-Entwurf mit Empfänger + PDF-Anhang
-    const b=`----=_SolarAbrechnung_${Date.now()}`;
-    const eml=[
-      "X-Unsent: 1",
-      `To: ${to}`,
-      `Subject: =?UTF-8?B?${b64utf8(subject)}?=`,
-      "MIME-Version: 1.0",
-      `Content-Type: multipart/mixed; boundary="${b}"`,
-      "",
-      `--${b}`,
-      "Content-Type: text/plain; charset=UTF-8",
-      "Content-Transfer-Encoding: base64",
-      "",
-      wrap76(b64utf8(text)),
-      `--${b}`,
-      `Content-Type: application/pdf; name="${fileName}"`,
-      "Content-Transfer-Encoding: base64",
-      `Content-Disposition: attachment; filename="${fileName}"`,
-      "",
-      wrap76(await blobToBase64(pdf)),
-      `--${b}--`,
-      ""
-    ].join("\r\n");
-    downloadBlob(new Blob([eml],{type:"message/rfc822"}),`E-Mail_${inv.invoiceNo}.eml`);
-    info(to
-      ? `E-Mail-Entwurf für ${to} heruntergeladen. Datei öffnen: Sie enthält den PDF-Anhang.`
-      : "E-Mail-Entwurf heruntergeladen, aber beim Bezüger ist keine E-Mail-Adresse hinterlegt. Bitte Adresse im Mailprogramm ergänzen.",
-      to?"ok":"");
-  }catch(err){
-    if(err?.name==="AbortError") return; // Teilen abgebrochen
-    info("E-Mail-Vorbereitung fehlgeschlagen: "+err.message,"error");
-  }
-}
-
-/* ---- Rechnungen erstellen ---- */
-$("createInvoiceBtn").onclick=async()=>{
-  $("invoicePreview").innerHTML=""; draftInvoices=[]; draftMeta=null;
-  const msg=(t,cls="")=>{$("invoiceMessage").className=("alert "+cls).trim();$("invoiceMessage").textContent=t;$("invoiceMessage").style.display="block";};
-  try {
-    const propertyId=$("invoiceProperty").value, period=$("invoicePeriod").value;
-    if(!propertyId||!period) throw new Error("Für diese Liegenschaft wurden noch keine Messdaten importiert.");
-    msg("Easee-Verbrauch wird automatisch aktualisiert …");
-    let easeeAutoResult={connected:false,imported:false};
-    try { easeeAutoResult = await autoImportEaseeForPeriod(propertyId,period); }
-    catch(e) { throw new Error("Automatischer Easee-Import fehlgeschlagen: " + e.message); }
-    const [snap,easeeSnap]=await Promise.all([
-      getDocs(query(collection(db,"imports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period))),
-      getDocs(query(collection(db,"easeeImports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)))
-    ]);
-    if(snap.empty&&easeeSnap.empty) throw new Error("Keine Messdaten für dieses Quartal gefunden.");
-    const tariffSnap=await getDoc(doc(db,"tariffs",propertyId));
-    if(!tariffSnap.exists()) throw new Error("Bitte zuerst die Tarife speichern.");
-    const tariff=tariffSnap.data();
-    if(!tariff.creditorName||!tariff.creditorPostal||!tariff.creditorCity||!validIban(tariff.iban||"")) throw new Error("Bitte zuerst unter «Tarife» die Rechnungssteller-Angaben (Name, PLZ, Ort) und eine gültige IBAN speichern. Sie werden für den QR-Zahlteil benötigt.");
-    if(!(Number(tariff.gridRp)>0)) throw new Error("Bitte zuerst einen Netzstrom-Tarif grösser als 0 speichern.");
-    const rows=latestRows(snap.docs.map(d=>d.data()));
-    const meterKey=value=>String(value??"").trim();
-    const combined=new Map(rows.map(r=>[meterKey(r.meterId),{...r,kwh:Number(r.kwh||0),smartmeKwh:Number(r.kwh||0),easeeKwh:0}]));
-    for(const d of easeeSnap.docs){
-      for(const r of (d.data().rows||[])){
-        const id=meterKey(r.meterId);
-        const target=combined.get(id)||{...r,kwh:0,smartmeKwh:0,easeeKwh:0};
-        const added=Math.max(0,Number(r.kwh||0));
-        target.easeeKwh=(Number(target.easeeKwh)||0)+added;
-        target.kwh=(Number(target.smartmeKwh)||0)+target.easeeKwh;
-        combined.set(id,target);
-      }
-    }
-    const invoiceRows=[...combined.values()];
-    const missing=invoiceRows.filter(row=>!customers.some(c=>c.propertyId===propertyId&&String(c.meterId)===String(row.meterId)));
-    if(missing.length) throw new Error("Für Zähler "+missing[0].meterId+" wurde kein Bezüger gefunden.");
-    msg("Solar-Manager-Daten werden abgerufen …");
-    const fig=await fetchSolarFigures(period);
-    const list=buildInvoices(propertyId,period,invoiceRows,tariff,fig);
-    const totalSmartme=rows.reduce((s,r)=>s+Number(r.kwh||0),0);
-    const totalEasee=easeeSnap.docs.reduce((sum,d)=>sum+(d.data().rows||[]).reduce((a,r)=>a+Number(r.kwh||0),0),0);
-    const totalCombined=totalSmartme+totalEasee;
-    const dev=Math.abs(totalSmartme-fig.consumption)/fig.consumption*100;
-    draftInvoices=list; draftMeta={propertyId,period};
-    const devCombined=Math.abs(totalCombined-fig.consumption)/fig.consumption*100;
-    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me ${fmtKwh(totalSmartme)} + Easee ${fmtKwh(totalEasee)} = ${fmtKwh(totalCombined)}. ${easeeAutoResult.imported?"Easee wurde automatisch aktualisiert. ":"Kein neuer Easee-Import (bestehende Daten werden verwendet). "}Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(devCombined>5?` Achtung: Die Summen weichen um ${fmtPct(devCombined)} ab – bitte vor dem Versand prüfen.`:""),devCombined>5?"":"ok");
-    const sum=list.reduce((s,x)=>s+x.total,0);
-    // Zusätzlicher Abrechnungscheck: Hinweise anzeigen, ohne bestehende Berechnungen zu verändern.
-    const audit=list.map(inv=>{
-      const issues=[];
-      if(!(Number(inv.kwh)>0)) issues.push("Kein positiver Verbrauch erfasst");
-      const missingAddress=[!inv.customer.street,!inv.customer.house,!inv.customer.postal,!inv.customer.city].some(Boolean);
-      if(missingAddress) issues.push("Adresse des Bezügers unvollständig");
-      if(!inv.customer.email) issues.push("Keine E-Mail-Adresse hinterlegt (Versand manuell möglich)");
-      if(Number(inv.total)<0) issues.push("Negativer Rechnungsbetrag");
-      return {inv,issues};
-    });
-    const flagged=audit.filter(x=>x.issues.length);
-    const auditHtml=flagged.length
-      ? `<div class="alert" style="margin-top:14px"><b>${flagged.length} von ${list.length} Rechnungen mit Prüfhinweis(en)</b><ul class="small" style="margin:7px 0 0;padding-left:18px">${flagged.map(x=>`<li><b>${esc(x.inv.customer.name)}</b>: ${x.issues.map(esc).join(" · ")}</li>`).join("")}</ul><p class="small" style="margin:8px 0 0">Bitte Hinweise vor dem Speichern kontrollieren. Fehlende E-Mail-Adressen verhindern die PDF-Erstellung nicht.</p></div>`
-      : `<div class="alert ok" style="margin-top:14px"><b>Abrechnungs-Check bestanden.</b> Keine offensichtlichen Auffälligkeiten bei Verbrauch, Adresse und Rechnungsbetrag gefunden.</div>`;
-    $("invoicePreview").innerHTML=`<div class="card" style="margin-top:12px;box-shadow:none"><h3>Prüfübersicht · ${esc(period)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Gesamt</th><th>Auto (Easee)</th><th>Solar</th><th>Netz</th><th>Betrag</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td><b>${esc(x.customer.name)}</b></td><td>${fmtKwh(x.kwh)}</td><td>${fmtKwh(x.easeeKwh)} </td><td>${fmtKwh(x.solarKwh)}</td><td>${fmtKwh(x.gridKwh)}</td><td><b>${chf(x.total)}</b></td></tr>`).join("")}</tbody><tfoot><tr><th colspan="6">Total</th><th>${chf(sum)}</th></tr></tfoot></table></div>${auditHtml}<div class="toolbar"><button class="btn gold" id="draftViewBtn">Rechnungen ansehen / drucken</button><button class="btn" id="draftSaveBtn">Im Rechnungsregister speichern</button><button class="btn alt" id="auditCsvBtn">Prüfbericht als CSV</button></div><p class="small muted">Easee-Ladestrom wird auf der Rechnung separat ausgewiesen und zum Netzstromtarif berechnet. Der Autoverbrauch wird separat mit der vereinbarten Solar-/Netzaufteilung ausgewiesen. Der neue Prüfbericht ergänzt die bestehende Kontrolle.</p></div>`;
-    $("auditCsvBtn").onclick=()=>{
-      const cell=v=>{let s=String(v??"");if(/^[=+@\-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
-      const rows=[["Rechnungsnummer","Bezüger","Zähler","Bezug kWh","Solar kWh","Netz kWh","Betrag CHF","Prüfhinweise"],...audit.map(x=>[x.inv.invoiceNo,x.inv.customer.name,x.inv.customer.meterId,x.inv.kwh,x.inv.solarKwh,x.inv.gridKwh,x.inv.total,x.issues.join("; ")])];
-      const csv="\uFEFF"+rows.map(r=>r.map(cell).join(";")).join("\r\n");
-      const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-      const a=document.createElement("a");a.href=url;a.download=`Abrechnungscheck_${period}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-    };
-    $("draftViewBtn").onclick=()=>showInvoices(draftInvoices,"Rechnungen "+period+" (Entwurf)");
-    $("draftSaveBtn").onclick=async()=>{
-      try{
-        if(invoices.some(x=>x.propertyId===draftMeta.propertyId&&x.period===draftMeta.period)) throw new Error("Für dieses Quartal sind bereits Rechnungen gespeichert. Bitte diese zuerst im Register löschen.");
-        for(const inv of draftInvoices) await addDoc(collection(db,"invoices"),{ownerUid:currentUser.uid,propertyId:draftMeta.propertyId,period:draftMeta.period,invoiceNo:inv.invoiceNo,customerId:inv.customerId,customerName:inv.customer.name,total:inv.total,data:inv,status:"final",createdAt:serverTimestamp()});
-        msg(draftInvoices.length+" Rechnung(en) im Register gespeichert.","ok");
-        $("draftSaveBtn").disabled=true; await loadAll();
-      }catch(err){msg(err.message,"error");}
-    };
-  } catch(e) { msg(e.message,"error"); }
-};
-</script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-</body>
-</html>
+      await navigator.share({files:[file],title:subj
