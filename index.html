@@ -197,7 +197,7 @@ tfoot th{color:#24715e}
   </div></div>
 <div class="wrap" style="padding-top:22px">
   <nav class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="properties">Liegenschaften</button><button class="tab" data-tab="customers">Bezüger & Zähler</button><button class="tab" data-tab="import">Smart-me-Import</button><button class="tab" data-tab="tariffs">Tarife</button><button class="tab" data-tab="invoices">Rechnungsregister</button><button class="tab" data-tab="solar">Solar-Manager</button>
+    <button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="properties">Liegenschaften</button><button class="tab" data-tab="customers">Bezüger & Zähler</button><button class="tab" data-tab="import">Smart-me-Import</button><button class="tab" data-tab="easee">Easee-Import</button><button class="tab" data-tab="tariffs">Tarife</button><button class="tab" data-tab="invoices">Rechnungsregister</button><button class="tab" data-tab="solar">Solar-Manager</button>
   </nav>
   <section class="panel active" id="panel-dashboard">
     <div class="grid"><div class="metric"><span>Liegenschaften</span><b id="mProperties">0</b></div><div class="metric"><span>Bezüger / Zähler</span><b id="mCustomers">0</b></div><div class="metric"><span>Importierte Quartale</span><b id="mImports">0</b></div></div>
@@ -226,6 +226,20 @@ tfoot th{color:#24715e}
     <div class="grid two"><div class="card"><h3>Smart-me-Excel importieren</h3><p class="muted small">Mehrere Bezügerdateien für dasselbe vollständige Kalenderquartal auswählen.</p><div class="drop"><b>Dateien auswählen</b><p class="muted small">Excel .xlsx – mehrere Dateien möglich</p><input id="excelFiles" type="file" accept=".xlsx,.xls" multiple></div><div class="toolbar"><button class="btn" id="inspectFilesBtn">Dateien prüfen</button><button class="btn alt" id="saveImportBtn" disabled>Import in Firebase speichern</button></div><div id="importMessage" class="small muted">Noch keine Dateien ausgewählt.</div></div>
     <div class="card"><h3>Import-Regeln</h3><ul class="small muted"><li>Bezüger/Zähler wird aus B2 erkannt.</li><li>Abrechnungszeitraum wird aus B3 gelesen.</li><li>Gesamtbezug wird in Spalte E bei «Import Total» bzw. «Bezug Total» gesucht.</li><li>Alle Dateien müssen dasselbe volle Kalenderquartal enthalten.</li><li>Jeder Zähler darf nur einmal vorkommen.</li></ul></div></div>
     <div class="card" style="margin-top:14px"><h3>Prüfergebnis</h3><div id="importPreview" class="empty">Nach der Dateiprüfung erscheint hier die Übersicht.</div></div>
+  </section>
+  <section class="panel" id="panel-easee">
+    <div class="card">
+      <h3>Easee Keys einmalig zuordnen</h3>
+      <p class="muted small">Ordne jeden Easee Key einem bestehenden Bezüger und dessen Zähler zu. Die Zuordnung wird dauerhaft in Firebase gespeichert und bei späteren Importen automatisch verwendet.</p>
+      <div id="easeeMappingList" class="empty">Noch keine Easee Keys zugeordnet. Füge unten einen Key hinzu.</div>
+      <div class="toolbar"><input id="newEaseeKey" placeholder="Easee Key, z. B. Werner" style="max-width:260px"><button class="btn alt" id="addEaseeKeyBtn">Key hinzufügen</button><button class="btn" id="saveEaseeMappingsBtn">Zuordnungen speichern</button></div>
+      <div id="easeeMappingMessage" class="small muted">Die Zuordnung gilt für alle zukünftigen Importe.</div>
+    </div>
+    <div class="grid two" style="margin-top:14px">
+      <div class="card"><h3>Easee-Excel importieren</h3><p class="muted small">Easee Key Summary Report (.xlsx). Die Periode wird anhand des Exportdatums automatisch dem Kalenderquartal zugeordnet.</p><div class="drop"><b>Datei auswählen</b><p class="muted small">Easee Excel .xlsx</p><input id="easeeExcelFile" type="file" accept=".xlsx,.xls"></div><div class="toolbar"><button class="btn" id="inspectEaseeBtn">Datei prüfen</button><button class="btn alt" id="saveEaseeImportBtn" disabled>Easee-Import speichern</button></div><div id="easeeImportMessage" class="small muted">Noch keine Datei ausgewählt.</div></div>
+      <div class="card"><h3>Import-Hinweise</h3><ul class="small muted"><li>Jeder Easee Key wird separat erkannt.</li><li>Die Gesamtsumme dient nur zur Kontrolle und wird nicht zusätzlich verrechnet.</li><li>Der Verbrauch wird dem zugeordneten Bezüger/Zähler zugeschlagen.</li><li>Smart-me-Daten bleiben unverändert; beide Quellen werden erst für die Rechnung zusammengeführt.</li></ul></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h3>Easee-Prüfergebnis</h3><div id="easeeImportPreview" class="empty">Nach der Dateiprüfung erscheint hier die Übersicht.</div></div>
   </section>
   <section class="panel" id="panel-tariffs"><div class="card"><h3>Tarife je Liegenschaft</h3><p class="muted small">Preise in Rappen pro kWh. Die Einstellungen werden in Firestore gespeichert.</p><div class="field"><label for="tariffProperty">Liegenschaft</label><select id="tariffProperty"></select></div><div class="grid two"><div class="field"><label for="gridRp">Netzstrom Rp./kWh</label><input id="gridRp" type="number" min="0" step="0.01" value="0"></div><div class="field"><label for="solarRp">Solarstrom Rp./kWh</label><input id="solarRp" type="number" min="0" step="0.01" value="0"></div><div class="field"><label for="reductionMode">Reduktionsart</label><select id="reductionMode"><option value="percent">Rabatt in Prozent</option><option value="fixed">Pauschalabzug CHF</option></select></div><div class="field"><label for="reductionValue">Reduktion</label><input id="reductionValue" type="number" min="0" step="0.01" value="0"></div></div><div class="grid two"><div class="field"><label for="meterRent">Zählermiete CHF pro Rechnung</label><input id="meterRent" type="number" min="0" step="0.05" value="0"></div><div class="field"><label for="payDays">Zahlungsfrist (Tage)</label><input id="payDays" type="number" min="0" step="1" value="30"></div></div>
 <div class="sec-title">Rechnungssteller &amp; Zahlung</div><p class="muted small">Diese Angaben erscheinen auf der Rechnung und im Schweizer QR-Zahlteil.</p>
@@ -272,6 +286,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const $ = id => document.getElementById(id);
 let currentUser = null, properties = [], customers = [], imports = [], pendingImport = null;
+let easeeImports = [], easeeMappings = {};
 let invoices = [], invoicesError = "", draftInvoices = [], draftMeta = null;
 let parsedFiles = [];
 
@@ -422,14 +437,18 @@ function latestRows(importDocs){
 }
 async function loadAll() {
   const uid=currentUser.uid;
-  const [p,c,i]=await Promise.all([
+  const [p,c,i,e,m]=await Promise.all([
     getDocs(query(collection(db,"properties"),where("ownerUid","==",uid))),
     getDocs(query(collection(db,"customers"),where("ownerUid","==",uid))),
-    getDocs(query(collection(db,"imports"),where("ownerUid","==",uid)))
+    getDocs(query(collection(db,"imports"),where("ownerUid","==",uid))),
+    getDocs(query(collection(db,"easeeImports"),where("ownerUid","==",uid))),
+    getDoc(doc(db,"easeeMappings",uid))
   ]);
   properties=p.docs.map(d=>({id:d.id,...d.data()}));
   customers=c.docs.map(d=>({id:d.id,...d.data()}));
   imports=i.docs.map(d=>({id:d.id,...d.data()}));
+  easeeImports=e.docs.map(d=>({id:d.id,...d.data()}));
+  easeeMappings=m.exists()?(m.data().mappings||{}):{};
   try{ const iv=await getDocs(query(collection(db,"invoices"),where("ownerUid","==",uid))); invoices=iv.docs.map(d=>({id:d.id,...d.data()})); invoicesError=""; }
   catch(e){ invoices=[]; invoicesError=e.message; }
   renderAll();
@@ -442,7 +461,7 @@ function periodValue(period) {
 }
 function refreshInvoicePeriod() {
   const propertyId=$("invoiceProperty").value;
-  const periods=[...new Set(imports.filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean))];
+  const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean))];
   periods.sort((a,b)=>periodValue(b)-periodValue(a));
   $("invoicePeriod").value=periods[0]||"";
   $("invoicePeriod").placeholder=periods.length?"Automatisch erkannt":"Noch keine Messdaten für diese Liegenschaft";
@@ -450,7 +469,7 @@ function refreshInvoicePeriod() {
 function renderAll() {
   $("mProperties").textContent=properties.length;
   $("mCustomers").textContent=customers.length;
-  $("mImports").textContent=new Set(imports.map(x=>x.period).filter(Boolean)).size;
+  $("mImports").textContent=new Set([...imports,...easeeImports].map(x=>x.period).filter(Boolean)).size;
   $("welcomeCard").classList.toggle("hidden",properties.length>0);
   $("setupHint").textContent=properties.length?"Deine Liegenschaften sind eingerichtet. Verwalte jetzt die Bezüger und importiere die Quartalsdaten.":"Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».";
   const propertyOptions=properties.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("") || '<option value="">Keine Liegenschaft vorhanden</option>';
@@ -469,6 +488,7 @@ function renderAll() {
   $("propertyList").innerHTML=properties.length?`<div class="table-wrap"><table><thead><tr><th>Liegenschaft</th><th>Adresse</th><th>Bezüger</th><th></th></tr></thead><tbody>${properties.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc([p.street,p.house,p.postal,p.city].filter(Boolean).join(" "))}</td><td>${customers.filter(c=>c.propertyId===p.id).length}</td><td><button class="btn danger" data-del-property="${esc(p.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Liegenschaft erfasst.</div>';
   $("customerList").innerHTML=customers.length?`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Liegenschaft</th><th>E-Mail</th><th></th></tr></thead><tbody>${customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.meterId)}</td><td>${esc(properties.find(p=>p.id===c.propertyId)?.name||"")}</td><td>${esc(c.email||"")}</td><td><button class="btn danger" data-del-customer="${esc(c.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Bezüger erfasst.</div>';
   renderInvoiceRegister();
+  renderEaseeMappings();
   if($("tariffProperty").value) loadTariff($("tariffProperty").value).catch(()=>{});
 }
 
@@ -590,6 +610,43 @@ document.addEventListener("click",async e=>{
     try {await deleteDoc(doc(db,"customers",c.id));await loadAll();} catch(err){alert(err.message);}
   }
 });
+function renderEaseeMappings(){
+  const keys=Object.keys(easeeMappings).sort((a,b)=>a.localeCompare(b,"de"));
+  if(!keys.length){$("easeeMappingList").className="empty";$("easeeMappingList").textContent="Noch keine Easee Keys zugeordnet. Füge unten einen Key hinzu.";return;}
+  const options=customers.slice().sort((a,b)=>a.name.localeCompare(b.name,"de")).map(c=>`<option value="${esc(c.id)}">${esc(c.name)} · Zähler ${esc(c.meterId)} · ${esc(properties.find(p=>p.id===c.propertyId)?.name||"")}</option>`).join("");
+  $("easeeMappingList").className="table-wrap";
+  $("easeeMappingList").innerHTML=`<table><thead><tr><th>Easee Key</th><th>Zugeordneter Bezüger / Zähler</th><th></th></tr></thead><tbody>${keys.map(k=>`<tr><td><b>${esc(k)}</b></td><td><select data-easee-map="${esc(k)}" style="min-width:260px"><option value="">Bitte Bezüger auswählen</option>${options}</select></td><td><button class="btn danger" data-easee-remove="${esc(k)}">Entfernen</button></td></tr>`).join("")}</tbody></table>`;
+  keys.forEach(k=>{const el=document.querySelector(`[data-easee-map="${CSS.escape(k)}"]`);if(el)el.value=easeeMappings[k]||"";});
+}
+$("addEaseeKeyBtn").onclick=()=>{const key=$("newEaseeKey").value.trim();if(!key)return; if(Object.prototype.hasOwnProperty.call(easeeMappings,key)){say("easeeMappingMessage","Dieser Easee Key ist bereits vorhanden.","error");return;}easeeMappings[key]="";$("newEaseeKey").value="";renderEaseeMappings();};
+document.addEventListener("change",e=>{const el=e.target.closest("[data-easee-map]");if(el)easeeMappings[el.dataset.easeeMap]=el.value;});
+document.addEventListener("click",e=>{const el=e.target.closest("[data-easee-remove]");if(el){delete easeeMappings[el.dataset.easeeRemove];renderEaseeMappings();}});
+$("saveEaseeMappingsBtn").onclick=async()=>{try{const missing=Object.entries(easeeMappings).find(([k,v])=>!String(v||"").trim());if(missing)throw new Error(`Bitte für den Easee Key «${missing[0]}» einen Bezüger auswählen.`);for(const [key,id] of Object.entries(easeeMappings)){if(!customers.some(c=>c.id===id))throw new Error(`Die Zuordnung für «${key}» verweist auf keinen vorhandenen Bezüger mehr.`);}await setDoc(doc(db,"easeeMappings",currentUser.uid),{ownerUid:currentUser.uid,mappings:easeeMappings,updatedAt:serverTimestamp()});say("easeeMappingMessage","Easee-Zuordnungen dauerhaft gespeichert.","ok");}catch(e){say("easeeMappingMessage",e.message,"error");}};
+
+let pendingEaseeImport=null;
+$("inspectEaseeBtn").onclick=async()=>{
+  try{
+    const file=$("easeeExcelFile").files[0];if(!file)throw new Error("Bitte zuerst den Easee-Excel-Export auswählen.");if(!window.XLSX)throw new Error("Excel-Bibliothek konnte nicht geladen werden. Bitte Seite neu laden.");
+    const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:false});const ws=wb.Sheets[wb.SheetNames[0]];
+    const from=String(ws.G2?.v??"").trim(),to=String(ws.G3?.v??"").trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to))throw new Error("Exportdatum in G2/G3 konnte nicht gelesen werden.");
+    const start=new Date(from+"T00:00:00Z"),end=new Date(to+"T00:00:00Z");if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<start)throw new Error("Der Exportzeitraum ist ungültig.");
+    const period=`${start.getUTCFullYear()}Q${Math.floor(start.getUTCMonth()/3)+1}`;
+    const endPeriod=`${end.getUTCFullYear()}Q${Math.floor(end.getUTCMonth()/3)+1}`;if(period!==endPeriod)throw new Error("Der Easee-Export muss innerhalb eines Kalenderquartals liegen.");
+    const matrix=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});const headerIndex=matrix.findIndex(r=>r.some(v=>String(v).trim()==="Easee Key"));if(headerIndex<0)throw new Error("Spalte «Easee Key» wurde nicht gefunden.");
+    const headers=matrix[headerIndex].map(v=>String(v).trim());const keyCol=headers.indexOf("Easee Key"),energyCol=headers.indexOf("Energy (kWh)"),amountCol=headers.indexOf("Amount (ex.VAT) (CHF)");if(keyCol<0||energyCol<0)throw new Error("Spalten «Easee Key» oder «Energy (kWh)» fehlen.");
+    const byKey={};for(const row of matrix.slice(headerIndex+1)){const key=String(row[keyCol]??"").trim();if(!key)continue;const kwh=Number(String(row[energyCol]).replace(",","."));if(!Number.isFinite(kwh)||kwh<0)continue;byKey[key]??={kwh:0,amountChf:0};byKey[key].kwh+=kwh;if(amountCol>=0){const a=Number(String(row[amountCol]).replace(",","."));if(Number.isFinite(a))byKey[key].amountChf+=a;}}
+    const keys=Object.keys(byKey);if(!keys.length)throw new Error("Im Export wurden keine Easee-Key-Verbrauchsdaten gefunden.");
+    const totalCell=String(ws.B15?.v??"").replace(",",".");const reportTotal=Number(totalCell);const keyTotal=Object.values(byKey).reduce((a,x)=>a+x.kwh,0);if(Number.isFinite(reportTotal)&&Math.abs(reportTotal-keyTotal)>0.05)throw new Error(`Kontrollsumme stimmt nicht: Keys ${keyTotal.toLocaleString("de-CH")} kWh, Bericht ${reportTotal.toLocaleString("de-CH")} kWh.`);
+    const unknown=keys.filter(k=>!easeeMappings[k]);if(unknown.length){unknown.forEach(k=>{if(!(k in easeeMappings))easeeMappings[k]="";});renderEaseeMappings();throw new Error("Neue Easee Keys erkannt: "+unknown.join(", ")+". Bitte oben zuordnen und speichern, danach die Datei erneut prüfen.");}
+    const grouped={};for(const [key,v] of Object.entries(byKey)){const customer=customers.find(c=>c.id===easeeMappings[key]);if(!customer)throw new Error(`Der Bezüger für «${key}» wurde nicht gefunden. Bitte Zuordnung prüfen.`);grouped[customer.propertyId]??={rows:[],keys:[]};const group=grouped[customer.propertyId];let row=group.rows.find(r=>r.meterId===String(customer.meterId));if(!row){row={meterId:String(customer.meterId),customerId:customer.id,customerName:customer.name,propertyId:customer.propertyId,kwh:0,easeeKeys:[]};group.rows.push(row);}row.kwh+=v.kwh;row.easeeKeys.push(key);group.keys.push({key,kwh:v.kwh,amountChf:v.amountChf,customerName:customer.name,meterId:customer.meterId});}
+    pendingEaseeImport={period,start:from,end:to,fileName:file.name,reportTotal:Number.isFinite(reportTotal)?reportTotal:keyTotal,byProperty:grouped};$("saveEaseeImportBtn").disabled=false;
+    const display=Object.values(grouped).flatMap(g=>g.keys);$("easeeImportMessage").textContent=`${keys.length} Easee Key(s) geprüft · ${period} · ${keyTotal.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh`;
+    $("easeeImportPreview").className="table-wrap";$("easeeImportPreview").innerHTML=`<table><thead><tr><th>Easee Key</th><th>Bezüger</th><th>Zähler</th><th>Verbrauch</th><th>Betrag im Export</th></tr></thead><tbody>${display.map(x=>`<tr><td><b>${esc(x.key)}</b></td><td>${esc(x.customerName)}</td><td>${esc(x.meterId)}</td><td>${x.kwh.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</td><td>CHF ${x.amountChf.toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`).join("")}</tbody><tfoot><tr><th colspan="3">Kontrollsumme</th><th>${keyTotal.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</th><th>Bericht: ${pendingEaseeImport.reportTotal.toLocaleString("de-CH",{maximumFractionDigits:2})} kWh</th></tr></tfoot></table>`;
+  }catch(e){pendingEaseeImport=null;$("saveEaseeImportBtn").disabled=true;say("easeeImportMessage",e.message,"error");}
+};
+$("saveEaseeImportBtn").onclick=async()=>{try{if(!pendingEaseeImport)throw new Error("Bitte zuerst die Easee-Datei prüfen.");for(const [propertyId,data] of Object.entries(pendingEaseeImport.byProperty)){const overlaps=easeeImports.filter(x=>x.propertyId===propertyId&&x.period===pendingEaseeImport.period&&String(x.start||"")<=pendingEaseeImport.end&&String(x.end||"")>=pendingEaseeImport.start);if(overlaps.length&&!confirm(`Für ${pendingEaseeImport.period} gibt es bereits einen Easee-Import mit überlappendem Zeitraum. Den überlappenden Import ersetzen?`))return;for(const old of overlaps)await deleteDoc(doc(db,"easeeImports",old.id));const id=`${currentUser.uid}_${propertyId}_${pendingEaseeImport.period}_${pendingEaseeImport.start}_${pendingEaseeImport.end}`;await setDoc(doc(db,"easeeImports",id),{ownerUid:currentUser.uid,propertyId,period:pendingEaseeImport.period,start:pendingEaseeImport.start,end:pendingEaseeImport.end,fileName:pendingEaseeImport.fileName,rows:data.rows,easeeKeys:data.keys,reportTotalKwh:pendingEaseeImport.reportTotal,createdAt:serverTimestamp()});}say("easeeImportMessage",`Easee-Verbrauch für ${pendingEaseeImport.period} gespeichert. Er wird beim Erstellen der Rechnung automatisch berücksichtigt.`,"ok");pendingEaseeImport=null;$("saveEaseeImportBtn").disabled=true;await loadAll();}catch(e){say("easeeImportMessage",e.message,"error");}};
+
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===b));
   document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="panel-"+b.dataset.tab));
@@ -1053,23 +1110,32 @@ $("createInvoiceBtn").onclick=async()=>{
   try {
     const propertyId=$("invoiceProperty").value, period=$("invoicePeriod").value;
     if(!propertyId||!period) throw new Error("Für diese Liegenschaft wurden noch keine Messdaten importiert.");
-    const snap=await getDocs(query(collection(db,"imports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)));
-    if(snap.empty) throw new Error("Keine Messdaten für dieses Quartal gefunden.");
+    const [snap,easeeSnap]=await Promise.all([
+      getDocs(query(collection(db,"imports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period))),
+      getDocs(query(collection(db,"easeeImports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)))
+    ]);
+    if(snap.empty&&easeeSnap.empty) throw new Error("Keine Messdaten für dieses Quartal gefunden.");
     const tariffSnap=await getDoc(doc(db,"tariffs",propertyId));
     if(!tariffSnap.exists()) throw new Error("Bitte zuerst die Tarife speichern.");
     const tariff=tariffSnap.data();
     if(!tariff.creditorName||!tariff.creditorPostal||!tariff.creditorCity||!validIban(tariff.iban||"")) throw new Error("Bitte zuerst unter «Tarife» die Rechnungssteller-Angaben (Name, PLZ, Ort) und eine gültige IBAN speichern. Sie werden für den QR-Zahlteil benötigt.");
     if(!(Number(tariff.gridRp)>0)) throw new Error("Bitte zuerst einen Netzstrom-Tarif grösser als 0 speichern.");
     const rows=latestRows(snap.docs.map(d=>d.data()));
-    const missing=rows.filter(row=>!customers.some(c=>c.propertyId===propertyId&&String(c.meterId)===String(row.meterId)));
+    const combined=new Map(rows.map(r=>[String(r.meterId),{...r,kwh:Number(r.kwh||0)}]));
+    for(const d of easeeSnap.docs){for(const r of (d.data().rows||[])){const id=String(r.meterId);const target=combined.get(id)||{...r,kwh:0};target.kwh+=Number(r.kwh||0);target.easeeKwh=(Number(target.easeeKwh)||0)+Number(r.kwh||0);combined.set(id,target);}}
+    const invoiceRows=[...combined.values()];
+    const missing=invoiceRows.filter(row=>!customers.some(c=>c.propertyId===propertyId&&String(c.meterId)===String(row.meterId)));
     if(missing.length) throw new Error("Für Zähler "+missing[0].meterId+" wurde kein Bezüger gefunden.");
     msg("Solar-Manager-Daten werden abgerufen …");
     const fig=await fetchSolarFigures(period);
-    const list=buildInvoices(propertyId,period,rows,tariff,fig);
+    const list=buildInvoices(propertyId,period,invoiceRows,tariff,fig);
     const totalSmartme=rows.reduce((s,r)=>s+Number(r.kwh||0),0);
+    const totalEasee=easeeSnap.docs.reduce((sum,d)=>sum+(d.data().rows||[]).reduce((a,r)=>a+Number(r.kwh||0),0),0);
+    const totalCombined=totalSmartme+totalEasee;
     const dev=Math.abs(totalSmartme-fig.consumption)/fig.consumption*100;
     draftInvoices=list; draftMeta={propertyId,period};
-    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me-Summe ${fmtKwh(totalSmartme)}, Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(dev>5?` Achtung: Die Summen weichen um ${fmtPct(dev)} ab – bitte vor dem Versand prüfen.`:""),dev>5?"":"ok");
+    const devCombined=Math.abs(totalCombined-fig.consumption)/fig.consumption*100;
+    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me ${fmtKwh(totalSmartme)} + Easee ${fmtKwh(totalEasee)} = ${fmtKwh(totalCombined)}. Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(devCombined>5?` Achtung: Die Summen weichen um ${fmtPct(devCombined)} ab – bitte vor dem Versand prüfen.`:""),devCombined>5?"":"ok");
     const sum=list.reduce((s,x)=>s+x.total,0);
     // Zusätzlicher Abrechnungscheck: Hinweise anzeigen, ohne bestehende Berechnungen zu verändern.
     const audit=list.map(inv=>{
@@ -1085,7 +1151,7 @@ $("createInvoiceBtn").onclick=async()=>{
     const auditHtml=flagged.length
       ? `<div class="alert" style="margin-top:14px"><b>${flagged.length} von ${list.length} Rechnungen mit Prüfhinweis(en)</b><ul class="small" style="margin:7px 0 0;padding-left:18px">${flagged.map(x=>`<li><b>${esc(x.inv.customer.name)}</b>: ${x.issues.map(esc).join(" · ")}</li>`).join("")}</ul><p class="small" style="margin:8px 0 0">Bitte Hinweise vor dem Speichern kontrollieren. Fehlende E-Mail-Adressen verhindern die PDF-Erstellung nicht.</p></div>`
       : `<div class="alert ok" style="margin-top:14px"><b>Abrechnungs-Check bestanden.</b> Keine offensichtlichen Auffälligkeiten bei Verbrauch, Adresse und Rechnungsbetrag gefunden.</div>`;
-    $("invoicePreview").innerHTML=`<div class="card" style="margin-top:12px;box-shadow:none"><h3>Prüfübersicht · ${esc(period)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Bezug</th><th>Solar</th><th>Netz</th><th>Betrag</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td><b>${esc(x.customer.name)}</b></td><td>${fmtKwh(x.kwh)}</td><td>${fmtKwh(x.solarKwh)}</td><td>${fmtKwh(x.gridKwh)}</td><td><b>${chf(x.total)}</b></td></tr>`).join("")}</tbody><tfoot><tr><th colspan="5">Total</th><th>${chf(sum)}</th></tr></tfoot></table></div>${auditHtml}<div class="toolbar"><button class="btn gold" id="draftViewBtn">Rechnungen ansehen / drucken</button><button class="btn" id="draftSaveBtn">Im Rechnungsregister speichern</button><button class="btn alt" id="auditCsvBtn">Prüfbericht als CSV</button></div><p class="small muted">Der Solarstromanteil ist eine Schätzung: Er wird proportional zum Verbrauch auf alle Bezüger verteilt, da die Zähler nur den Gesamtbezug messen. Der neue Prüfbericht ergänzt die bestehende Kontrolle; Berechnungen und Rechnungsdaten bleiben unverändert.</p></div>`;
+    $("invoicePreview").innerHTML=`<div class="card" style="margin-top:12px;box-shadow:none"><h3>Prüfübersicht · ${esc(period)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Bezüger</th><th>Bezug</th><th>Solar</th><th>Netz</th><th>Betrag</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td><b>${esc(x.customer.name)}</b></td><td>${fmtKwh(x.kwh)}</td><td>${fmtKwh(x.solarKwh)}</td><td>${fmtKwh(x.gridKwh)}</td><td><b>${chf(x.total)}</b></td></tr>`).join("")}</tbody><tfoot><tr><th colspan="5">Total</th><th>${chf(sum)}</th></tr></tfoot></table></div>${auditHtml}<div class="toolbar"><button class="btn gold" id="draftViewBtn">Rechnungen ansehen / drucken</button><button class="btn" id="draftSaveBtn">Im Rechnungsregister speichern</button><button class="btn alt" id="auditCsvBtn">Prüfbericht als CSV</button></div><p class="small muted">Easee-Verbrauch ist im jeweiligen Bezüger-Gesamtverbrauch enthalten. Der Solarstromanteil ist eine Schätzung: Er wird proportional zum Verbrauch auf alle Bezüger verteilt, da die Zähler nur den Gesamtbezug messen. Der neue Prüfbericht ergänzt die bestehende Kontrolle; Berechnungen und Rechnungsdaten bleiben unverändert.</p></div>`;
     $("auditCsvBtn").onclick=()=>{
       const cell=v=>{let s=String(v??"");if(/^[=+@\-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
       const rows=[["Rechnungsnummer","Bezüger","Zähler","Bezug kWh","Solar kWh","Netz kWh","Betrag CHF","Prüfhinweise"],...audit.map(x=>[x.inv.invoiceNo,x.inv.customer.name,x.inv.customer.meterId,x.inv.kwh,x.inv.solarKwh,x.inv.gridKwh,x.inv.total,x.issues.join("; ")])];
