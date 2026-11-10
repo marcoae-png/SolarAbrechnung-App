@@ -215,6 +215,7 @@ tfoot th{color:#24715e}
         <div class="solar-metric"><span>Autarkiegrad</span><b id="sdAutarky">–</b><small>Anteil des Verbrauchs aus Solar</small></div>
         <div class="solar-metric"><span>Eigenverbrauchsquote</span><b id="sdSelfRate">–</b><small>Anteil der Produktion selbst genutzt</small></div>
       </div>
+      <div class="card" style="margin-top:14px;box-shadow:none"><h3>Easee-Gerätewerte prüfen</h3><p class="muted small">Prüft, ob der SolarManager die Geräte-Autarkie von EASEE HOME über die API bereitstellt. Es werden keine Rechnungswerte verändert.</p><button class="btn alt" id="checkEaseeSolarDataBtn">Easee-Solarwerte prüfen</button><div id="easeeSolarDataMessage" class="alert" style="margin-top:10px">Noch keine Diagnose ausgeführt.</div><pre id="easeeSolarDataRaw" class="small" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;display:none"></pre></div>
       <div class="card" style="margin-top:14px;box-shadow:none"><h3>Solarstrom und Ersparnis pro Bezüger</h3><div id="solarCustomerEstimate" class="empty">Noch keine Solarwerte geladen.</div><div class="solar-note">Schätzung: Da die Smart-me-Zähler nur den Gesamtverbrauch messen, wird der Solarstrom proportional zum Verbrauch auf die Bezüger verteilt. Die individuelle Aufteilung ist nicht gemessen. Die Ersparnis wird aus der Differenz zwischen Netzstrom- und Solarstromtarif berechnet.</div></div>
     </div>
     <div class="card" id="welcomeCard" style="margin-top:15px"><h3>Willkommen bei SolarAbrechnung</h3><p class="muted small">Lege zuerst eine Liegenschaft und danach die zugehörigen Bezüger mit ihren Smart-me-Zählernummern an. Anschliessend kannst du die Excel-Exporte importieren.</p><div id="setupHint" class="alert">Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».</div></div>
@@ -247,10 +248,10 @@ tfoot th{color:#24715e}
     </div>
     <div class="card" style="margin-top:14px">
       <h3>Easee-Keys den Bezügern zuordnen</h3>
-      <p class="muted small">Ordne gewünschte Easee-Keys einem bestehenden Bezüger und dessen Zähler zu. Wähle bei privaten oder nicht abzurechnenden Keys «Nicht importieren». Auch diese Auswahl wird dauerhaft gespeichert und bei späteren Importen berücksichtigt.</p>
+      <p class="muted small">Ordne jeden gefundenen Easee-Key einem bestehenden Bezüger und dessen Zähler zu. Die Zuordnung wird dauerhaft in Firebase gespeichert und bei späteren Importen automatisch wiederverwendet.</p>
       <div id="easeeMappingList" class="empty">Noch keine Easee-Keys zugeordnet. Füge unten einen Key-Namen hinzu.</div>
       <div class="toolbar"><input id="newEaseeKey" placeholder="Easee-Key / Username" style="max-width:260px"><button class="btn alt" id="addEaseeKeyBtn">Key hinzufügen</button><button class="btn" id="saveEaseeMappingsBtn">Zuordnungen speichern</button></div>
-      <div id="easeeMappingMessage" class="small muted">Nur zugeordnete Keys werden importiert. «Nicht importieren» wird dauerhaft gespeichert und übersprungen.</div>
+      <div id="easeeMappingMessage" class="small muted">Nur gespeicherte Keys werden importiert. Nicht zugeordnete Keys werden ignoriert.</div>
     </div>
     <div class="grid two" style="margin-top:14px">
       <div class="card"><h3>Easee-Excel importieren</h3><p class="muted small">Easee Key Summary Report (.xlsx). Die Periode wird anhand des Exportdatums automatisch dem Kalenderquartal zugeordnet.</p><div class="drop"><b>Datei auswählen</b><p class="muted small">Easee Excel .xlsx</p><input id="easeeExcelFile" type="file" accept=".xlsx,.xls"></div><div class="toolbar"><button class="btn" id="inspectEaseeBtn">Datei prüfen</button><button class="btn alt" id="saveEaseeImportBtn" disabled>Easee-Import speichern</button></div><div id="easeeImportMessage" class="small muted">Noch keine Datei ausgewählt.</div></div>
@@ -337,6 +338,22 @@ async function solarDataRequest(path) {
   if (!response.ok) throw new Error(data.error || "Solar-Manager-Daten konnten nicht geladen werden.");
   return data;
 }
+$("checkEaseeSolarDataBtn").onclick=async()=>{
+  const button=$("checkEaseeSolarDataBtn"), message=$("easeeSolarDataMessage"), raw=$("easeeSolarDataRaw");
+  try{
+    const propertyId=$("solarDashProperty").value, period=$("solarDashPeriod").value;
+    if(!propertyId||!period) throw new Error("Bitte zuerst im Solar-Dashboard eine Liegenschaft und einen importierten Zeitraum auswählen.");
+    const {from,to}=quarterDates(period);
+    button.disabled=true;message.className="alert";message.textContent="SolarManager-Gerätewerte werden geprüft …";raw.style.display="none";
+    const data=await solarDataRequest("/api/solar-easee-diagnose?"+new URLSearchParams({from,to}));
+    raw.textContent=JSON.stringify(data.result||data,null,2);raw.style.display="block";
+    const matches=data.result?.easeeDeviceMatches||[];
+    message.className="alert ok";
+    message.textContent=matches.length?`Diagnose abgeschlossen: ${matches.length} mögliches Easee-Gerät gefunden. Die API-Antwort steht darunter zur Auswertung.`:"Diagnose abgeschlossen. Kein Gerät mit Easee-/Wallbox-Bezeichnung gefunden; die vollständige API-Antwort steht darunter.";
+  }catch(error){message.className="alert error";message.textContent=error.message||String(error);}
+  finally{button.disabled=false;}
+};
+
 async function easeeApiRequest(path, method="GET", body=null) {
   if (!currentUser) throw new Error("Bitte zuerst im SolarAbrechnung-Portal anmelden.");
   const token=await currentUser.getIdToken();
@@ -647,7 +664,7 @@ function renderEaseeMappings(){
 $("addEaseeKeyBtn").onclick=()=>{const key=$("newEaseeKey").value.trim();if(!key)return;if(Object.prototype.hasOwnProperty.call(easeeMappings,key)){say("easeeMappingMessage","Dieser Easee-Key ist bereits vorhanden.","error");return;}easeeMappings[key]="";$("newEaseeKey").value="";renderEaseeMappings();};
 document.addEventListener("change",e=>{const el=e.target.closest("[data-easee-map]");if(el)easeeMappings[el.dataset.easeeMap]=el.value;});
 document.addEventListener("click",e=>{const el=e.target.closest("[data-easee-remove]");if(el){delete easeeMappings[el.dataset.easeeRemove];renderEaseeMappings();}});
-$("saveEaseeMappingsBtn").onclick=async()=>{try{const cleaned={};for(const [key,id] of Object.entries(easeeMappings)){const customerId=String(id||"").trim();if(customerId&&!customers.some(c=>c.id===customerId))throw new Error(`Die Zuordnung für den Easee-Key «${key}» verweist auf keinen vorhandenen Bezüger mehr.`);cleaned[key]=customerId;}easeeMappings=cleaned;await setDoc(doc(db,"easeeMappings",currentUser.uid),{ownerUid:currentUser.uid,mappings:easeeMappings,updatedAt:serverTimestamp()});renderEaseeMappings();say("easeeMappingMessage","Easee-Key-Zuordnungen gespeichert. Keys mit «Nicht importieren» werden dauerhaft ignoriert.","ok");}catch(e){say("easeeMappingMessage",e.message,"error");}};
+$("saveEaseeMappingsBtn").onclick=async()=>{try{const cleaned={};for(const [key,id] of Object.entries(easeeMappings)){if(!String(id||"").trim())continue;if(!customers.some(c=>c.id===id))throw new Error(`Die Zuordnung für den Easee-Key «${key}» verweist auf keinen vorhandenen Bezüger mehr.`);cleaned[key]=id;}easeeMappings=cleaned;await setDoc(doc(db,"easeeMappings",currentUser.uid),{ownerUid:currentUser.uid,mappings:easeeMappings,updatedAt:serverTimestamp()});renderEaseeMappings();say("easeeMappingMessage","Easee-Key-Zuordnungen gespeichert. Nicht zugeordnete Keys werden ignoriert.","ok");}catch(e){say("easeeMappingMessage",e.message,"error");}};
 
 function setEaseeQuarterDefaults(){
   const now=new Date(),q=Math.floor(now.getMonth()/3),start=new Date(now.getFullYear(),q*3,1),end=new Date(now.getFullYear(),q*3+3,0);
