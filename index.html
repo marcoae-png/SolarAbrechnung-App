@@ -592,16 +592,17 @@ $("smartmeCheckBtn").onclick=async()=>{
     smartmeMsg("Smart-me-Zähler werden geladen …");
     const data=await smartmeApiRequest("/api/smartme-devices");
     const rows=(data.devices||[]).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),"de"));
-    $("smartmeDevices").innerHTML=rows.length?`<div class="table-wrap"><table><thead><tr><th>Name</th><th>Zählernummer</th><th>Zählerstand</th><th>Bezüger im Portal</th><th></th></tr></thead><tbody>${rows.map(d=>{const c=customers.find(x=>String(x.meterId)===String(d.serial));return `<tr><td>${esc(d.name)}</td><td>${esc(d.serial)}</td><td>${d.reading==null?"–":fmtKwh(d.reading)}</td><td>${c?`<b>${esc(c.name)}</b>`:'<span class="muted">nicht zugeordnet</span>'}</td><td><button class="btn alt" data-smartme-raw="${esc(d.id)}">Rohdaten</button></td></tr>`;}).join("")}</tbody></table></div><pre id="smartmeRaw" class="small" style="white-space:pre-wrap;max-height:260px;overflow:auto;margin:10px 0 0"></pre>`:'<div class="empty">Keine Geräte gefunden.</div>';
+    $("smartmeDevices").innerHTML=rows.length?`<div class="toolbar"><div class="field" style="margin:0"><label for="smartmeRawDate">Stichtag für «Rohdaten»</label><input id="smartmeRawDate" type="date" value="${esc(quarterRange(completedQuarters(1)[0]).start)}"></div></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Zählernummer</th><th>Zählerstand</th><th>Bezüger im Portal</th><th></th></tr></thead><tbody>${rows.map(d=>{const c=customers.find(x=>String(x.meterId)===String(d.serial));return `<tr><td>${esc(d.name)}</td><td>${esc(d.serial)}</td><td>${d.reading==null?"–":fmtKwh(d.reading)}</td><td>${c?`<b>${esc(c.name)}</b>`:'<span class="muted">nicht zugeordnet</span>'}</td><td><button class="btn alt" data-smartme-raw="${esc(d.id)}">Rohdaten</button></td></tr>`;}).join("")}</tbody></table></div><pre id="smartmeRaw" class="small" style="white-space:pre-wrap;max-height:260px;overflow:auto;margin:10px 0 0"></pre>`:'<div class="empty">Keine Geräte gefunden.</div>';
     smartmeMsg(`${rows.length} Smart-me-Gerät(e). Die Zählernummer muss mit der Zählernummer des Bezügers übereinstimmen.`,"ok");
   }catch(e){smartmeMsg(e.message,"error");}
 };
 document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-smartme-raw]"); if(!b) return;
   try{
-    const r=quarterRange(completedQuarters(1)[0]);
-    const data=await smartmeApiRequest("/api/smartme-raw?"+new URLSearchParams({deviceId:b.dataset.smartmeRaw,date:r.start}));
-    $("smartmeRaw").textContent="Zählerstand am "+r.start+":\n"+JSON.stringify(data,null,2);
+    const day=$("smartmeRawDate")?.value||quarterRange(completedQuarters(1)[0]).start;
+    $("smartmeRaw").textContent="Lade …";
+    const data=await smartmeApiRequest("/api/smartme-raw?"+new URLSearchParams({deviceId:b.dataset.smartmeRaw,date:day}));
+    $("smartmeRaw").textContent="Zählerstand am "+day+":\n"+JSON.stringify(data,null,2);
   }catch(err){$("smartmeRaw").textContent=err.message;}
 });
 // Holt Quartalswerte aus Smart-me und speichert sie wie einen Import.
@@ -613,10 +614,11 @@ async function autoImportSmartmeForPeriod(propertyId,period,customerId){
   if(!targets.length) return {connected:true,skipped:"Keine Bezüger vorhanden."};
   const data=await smartmeApiRequest("/api/smartme-quarter?"+new URLSearchParams({from:range.start,to:range.endExcl,meters:targets.map(c=>String(c.meterId)).join(",")}));
   const old=latestRows(imports.filter(x=>x.propertyId===propertyId&&x.period===period));
-  const rows=[], problems=[], diffs=[];
+  const rows=[], problems=[], diffs=[], notes=[];
   for(const m of data.meters||[]){
     const c=targets.find(x=>String(x.meterId)===String(m.meter));
-    if(m.kwh==null||!Number.isFinite(Number(m.kwh))){problems.push(`Zähler ${m.meter}: Zählerstand für ${m.startReading==null?range.start:range.endExcl} fehlt`);continue;}
+    if(m.startDate&&m.startDate!==range.start&&m.kwh!=null) notes.push(`${c?.name||m.meter} (Zähler ${m.meter}): Kein Zählerstand am ${isoToCh(range.start)} – Verbrauch ab ${isoToCh(m.startDate)} gerechnet`);
+    if(m.kwh==null||!Number.isFinite(Number(m.kwh))){problems.push(m.startReading==null?`Zähler ${m.meter}: Anfangsstand am ${isoToCh(range.start)} fehlt (Smart-me liefert dafür keinen Wert)`:`Zähler ${m.meter}: Endstand am ${isoToCh(range.endExcl)} fehlt (Anfangsstand ${fmtKwh(m.startReading)} vorhanden)`);continue;}
     if(Number(m.kwh)<0){problems.push(`Zähler ${m.meter}: negativer Verbrauch (${m.kwh})`);continue;}
     rows.push({fileName:"Smart-me API",meterId:String(m.meter),customerId:c.id,customerName:c.name,propertyId,start:range.start,end:range.lastDay,period,kwh:Number(m.kwh),startReading:m.startReading,endReading:m.endReading});
     const prev=old.find(o=>String(o.meterId)===String(m.meter));
@@ -631,7 +633,7 @@ async function autoImportSmartmeForPeriod(propertyId,period,customerId){
     await addDoc(collection(db,"imports"),rec);
     imports.push({...rec,id:"api-"+Date.now(),createdAt:{toMillis:()=>Date.now()}});
   }
-  return {connected:true,imported:rows.length,problems:uncovered,diffs};
+  return {connected:true,imported:rows.length,problems:uncovered,diffs,notes};
 }
 function refreshInvoiceCustomers() {
   const propertyId=$("invoiceProperty").value, select=$("invoiceCustomer"), previous=select.value;
@@ -1505,7 +1507,7 @@ $("createInvoiceBtn").onclick=async()=>{
       try{
         const sm=await autoImportSmartmeForPeriod(propertyId,period,$("invoiceCustomer").value);
         if(sm.skipped) smartmeNote=sm.skipped+" ";
-        else if(sm.imported) smartmeNote=`Smart-me API: ${sm.imported} Zähler automatisch abgerufen. `+(sm.problems.length?"Achtung: "+sm.problems.join("; ")+". ":"")+(sm.diffs.length?"Abweichung zu bisherigen Importwerten: "+sm.diffs.join("; ")+". ":"");
+        else if(sm.imported) smartmeNote=`Smart-me API: ${sm.imported} Zähler automatisch abgerufen. `+(sm.problems.length?"Achtung: "+sm.problems.join("; ")+". ":"")+(sm.diffs.length?"Abweichung zu bisherigen Importwerten: "+sm.diffs.join("; ")+". ":"")+(sm.notes?.length?"Hinweis: "+sm.notes.join("; ")+". ":"");
         else if(sm.problems?.length) smartmeNote="Achtung: "+sm.problems.join("; ")+". ";
       }catch(e){ throw new Error("Smart-me-Abruf fehlgeschlagen: "+e.message); }
     }
