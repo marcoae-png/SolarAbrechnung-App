@@ -85,6 +85,14 @@ header.site{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);ba
 .alert{padding:11px 14px;border-radius:11px;background:#fff6e8;color:#79521d;font-size:12px;margin:12px 0}
 .alert.error{background:#fff0ed;color:var(--red)}.alert.ok{background:#eaf5ef;color:var(--green)}
 
+.pwwrap{position:relative}
+.pwwrap input{padding-right:46px}
+.pwtoggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;padding:0}
+.pwtoggle:hover{color:var(--green);background:var(--mint)}
+.pwtoggle svg{width:20px;height:20px}
+
+
+  
 /* App-Bereich */
 .app-hero{position:relative;overflow:hidden;background:linear-gradient(120deg,#103a32 0%,#174d41 62%,#1e6653 100%);color:#fff}
 .app-hero:before{content:"";position:absolute;width:420px;height:420px;right:-130px;top:-250px;border:1px solid #ffffff12;border-radius:50%}
@@ -182,7 +190,7 @@ tfoot th{color:#24715e}
     <div><div class="login-card" id="anmelden">
       <h2>Willkommen zurück</h2><p class="muted small">Melde dich an, um deine Liegenschaften und Abrechnungen zu verwalten.</p><div class="alert ok" style="margin:12px 0 0"><b>Neu hier?</b> Gib E-Mail und Passwort ein und klicke auf «Konto erstellen». Du kannst SolarAbrechnung 30 Tage kostenlos testen.</div>
       <div class="field"><label for="email">E-Mail-Adresse</label><input id="email" type="email" autocomplete="username" placeholder="name@beispiel.ch"></div>
-      <div class="field"><label for="password">Passwort</label><input id="password" type="password" autocomplete="current-password" placeholder="Mindestens 6 Zeichen"></div>
+      <div class="field"><label for="password">Passwort</label><div class="pwwrap"><input id="password" type="password" autocomplete="current-password" placeholder="Mindestens 6 Zeichen"><button type="button" class="pwtoggle" data-pw-toggle="password" aria-label="Passwort anzeigen" title="Passwort anzeigen"></button></div></div>
       <div id="authMessage" class="small muted" aria-live="polite"></div>
       <div class="login-actions"><button class="btn" id="loginBtn">Anmelden</button><button class="btn alt" id="registerBtn">Konto erstellen</button><button class="btn alt" id="resetBtn">Passwort vergessen</button></div>
     </div><p class="login-note" style="color:#c4d8ce">Deine Daten werden getrennt und geschützt in Firebase gespeichert.</p></div>
@@ -237,8 +245,7 @@ tfoot th{color:#24715e}
       <p class="muted small">Verbinde dein eigenes Easee-Konto. Das Passwort wird nur für die Anmeldung verwendet und nicht gespeichert. Der erneuerte Token wird verschlüsselt im Cloudflare-Worker abgelegt.</p>
       <div class="grid two">
         <div class="field"><label for="easeeUsername">Easee-Benutzername / E-Mail</label><input id="easeeUsername" autocomplete="username" placeholder="Easee-Anmeldeadresse"></div>
-        <div class="field"><label for="easeePassword">Easee-Passwort</label><input id="easeePassword" type="password" autocomplete="current-password" placeholder="Passwort nur zur Verbindung"></div>
-      </div>
+      <div class="field"><label for="easeePassword">Easee-Passwort</label><div class="pwwrap"><input id="easeePassword" type="password" autocomplete="current-password" placeholder="Passwort nur zur Verbindung"><button type="button" class="pwtoggle" data-pw-toggle="easeePassword" aria-label="Passwort anzeigen" title="Passwort anzeigen"></button></div></div>
       <div class="toolbar"><button class="btn" id="easeeConnectBtn">Easee verbinden</button><button class="btn alt" id="easeeRefreshSitesBtn">Verbindung prüfen</button><button class="btn danger" id="easeeDisconnectBtn">Verbindung trennen</button></div>
       <p id="easeeApiMessage" class="small muted" aria-live="polite">Noch keine Easee-Verbindung eingerichtet.</p>
       <div class="grid two" style="margin-top:12px">
@@ -309,6 +316,23 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const $ = id => document.getElementById(id);
+
+const EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.9 10.9 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+document.querySelectorAll("[data-pw-toggle]").forEach(b=>{
+  b.innerHTML=EYE;
+  b.addEventListener("click",()=>{
+    const input=document.getElementById(b.dataset.pwToggle);
+    const show=input.type==="password";
+    input.type=show?"text":"password";
+    b.innerHTML=show?EYE_OFF:EYE;
+    const t=show?"Passwort verbergen":"Passwort anzeigen";
+    b.title=t;b.setAttribute("aria-label",t);
+  });
+});
+
+
+  
 let currentUser = null, properties = [], customers = [], imports = [], pendingImport = null;
 let easeeImports = [], easeeMappings = {};
 let invoices = [], invoicesError = "", draftInvoices = [], draftMeta = null;
