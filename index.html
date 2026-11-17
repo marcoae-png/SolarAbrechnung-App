@@ -532,7 +532,7 @@ async function loadAll() {
   catch(e){ invoices=[]; invoicesError=e.message; }
   renderAll();
   loadEaseeConnection().catch(()=>{});
-  loadSmartmeConnection().catch(()=>{});
+  loadSmartmeConnection().catch(e=>{smartmeMsg("Smart-me-Status konnte nicht geladen werden: "+e.message+" (Worker aktualisiert und D1-Tabelle angelegt?)","error");});
 }
 function periodValue(period) {
   const m=String(period||"").match(/(\d{4}).*?Q([1-4])/i);
@@ -540,9 +540,10 @@ function periodValue(period) {
   const d=String(period||"").match(/(\d{4})-(\d{2})/);
   return d ? Number(d[1])*10+Math.ceil(Number(d[2])/3) : 0;
 }
-function completedQuarters(n=8){
+const FIRST_BILLING_YEAR=2023;
+function completedQuarters(limit=Infinity){
   const out=[], now=new Date(); let y=now.getFullYear(), q=Math.floor(now.getMonth()/3)+1;
-  for(let i=0;i<n;i++){q--;if(q<1){q=4;y--;}out.push(`${y} Q${q}`);}
+  while(out.length<limit){q--;if(q<1){q=4;y--;}if(y<FIRST_BILLING_YEAR)break;out.push(`${y} Q${q}`);}
   return out;
 }
 function quarterRange(period){
@@ -635,7 +636,7 @@ function refreshInvoicePeriod() {
   const propertyId=$("invoiceProperty").value;
   const select=$("invoicePeriod");
   const previous=select.value;
-  const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean),...(smartmeConnected?completedQuarters(8):[]))];
+  const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean),...(smartmeConnected?completedQuarters():[]))];
   periods.sort((a,b)=>periodValue(b)-periodValue(a));
   select.innerHTML='<option value="">Quartal auswählen</option>'+periods.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
   if(periods.includes(previous)) select.value=previous;
