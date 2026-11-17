@@ -618,7 +618,7 @@ async function autoImportSmartmeForPeriod(propertyId,period,customerId){
   for(const m of data.meters||[]){
     const c=targets.find(x=>String(x.meterId)===String(m.meter));
     if(m.startDate&&m.startDate!==range.start&&m.kwh!=null) notes.push(`${c?.name||m.meter} (Zähler ${m.meter}): Kein Zählerstand am ${isoToCh(range.start)} – Verbrauch ab ${isoToCh(m.startDate)} gerechnet`);
-    if(m.kwh==null||!Number.isFinite(Number(m.kwh))){problems.push(m.startReading==null?`Zähler ${m.meter}: Anfangsstand am ${isoToCh(range.start)} fehlt (Smart-me liefert dafür keinen Wert)`:`Zähler ${m.meter}: Endstand am ${isoToCh(range.endExcl)} fehlt (Anfangsstand ${fmtKwh(m.startReading)} vorhanden)`);continue;}
+    if(m.kwh==null||!Number.isFinite(Number(m.kwh))){problems.push(m.startReading==null?`Zähler ${m.meter}: Anfangsstand am ${isoToCh(range.start)} fehlt (Smart-me-Antwort: ${m.debug||"keine Diagnose – Worker-Patch deployt?"})`:`Zähler ${m.meter}: Endstand am ${isoToCh(range.endExcl)} fehlt (Anfangsstand ${fmtKwh(m.startReading)} vorhanden)`);continue;}
     if(Number(m.kwh)<0){problems.push(`Zähler ${m.meter}: negativer Verbrauch (${m.kwh})`);continue;}
     rows.push({fileName:"Smart-me API",meterId:String(m.meter),customerId:c.id,customerName:c.name,propertyId,start:range.start,end:range.lastDay,period,kwh:Number(m.kwh),startReading:m.startReading,endReading:m.endReading});
     const prev=old.find(o=>String(o.meterId)===String(m.meter));
