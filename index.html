@@ -296,7 +296,11 @@ tfoot th{color:#24715e}
     <div class="card"><h3>Rechnungen erstellen</h3><p class="muted small">Liegenschaft und das neueste importierte Quartal werden automatisch erkannt. Die Solar-Manager-Daten werden beim Erstellen abgerufen.</p>
       <div class="field"><label for="invoiceProperty">Liegenschaft</label><select id="invoiceProperty"></select></div>
       <div class="field"><label for="invoiceCustomer">Bezüger</label><select id="invoiceCustomer"><option value="">Alle Bezüger</option></select></div>
-      <div class="field"><label for="invoicePeriod">Abrechnungsquartal</label><select id="invoicePeriod" aria-label="Abrechnungsquartal"><option value="">Quartal auswählen</option></select></div>
+      <div class="grid two" style="margin:0">
+        <div class="field"><label for="invoiceYear">Jahr</label><select id="invoiceYear" aria-label="Abrechnungsjahr"></select></div>
+        <div class="field"><label for="invoiceQuarter">Quartal</label><select id="invoiceQuarter" aria-label="Abrechnungsquartal"></select></div>
+      </div>
+      <input type="hidden" id="invoicePeriod">
       <button class="btn" id="createInvoiceBtn">Rechnungen erstellen</button><div id="invoiceMessage" class="alert" style="display:none"></div><div id="invoicePreview"></div>
     </div>
     <div class="card" style="margin-top:15px"><h3>Rechnungsregister</h3><div id="invoiceList" class="empty">Noch keine definitiven Rechnungen vorhanden.</div></div>
@@ -635,17 +639,36 @@ function refreshInvoiceCustomers() {
   select.innerHTML='<option value="">Alle Bezüger</option>'+list.map(c=>`<option value="${esc(c.id)}">${esc(c.name)} · Zähler ${esc(c.meterId)}</option>`).join("");
   if(list.some(c=>c.id===previous)) select.value=previous;
 }
+function syncInvoicePeriod(){
+  const y=$("invoiceYear").value, q=$("invoiceQuarter").value;
+  $("invoicePeriod").value=(y&&q)?`${y} Q${q}`:"";
+}
+function fillInvoiceQuarters(preferred){
+  const y=$("invoiceYear").value, sel=$("invoiceQuarter");
+  const prev=preferred||sel.value;
+  const qs=[...new Set(invoicePeriodList.filter(p=>p.startsWith(y+" ")).map(p=>p.slice(-1)))].sort((a,b)=>Number(b)-Number(a));
+  sel.innerHTML=qs.map(q=>`<option value="${q}">Q${q} (${["Jan–Mär","Apr–Jun","Jul–Sep","Okt–Dez"][q-1]})</option>`).join("");
+  if(qs.includes(prev)) sel.value=prev; else if(qs.length) sel.value=qs[0];
+  sel.disabled=!qs.length;
+  syncInvoicePeriod();
+}
+let invoicePeriodList=[];
 function refreshInvoicePeriod() {
   const propertyId=$("invoiceProperty").value;
-  const select=$("invoicePeriod");
-  const previous=select.value;
-  const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean),...completedQuarters())];
-  periods.sort((a,b)=>periodValue(b)-periodValue(a));
-  select.innerHTML='<option value="">Quartal auswählen</option>'+periods.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
-  if(periods.includes(previous)) select.value=previous;
-  else if(periods.length) select.value=periods[0];
-  select.disabled=periods.length===0;
-  select.title="Alle abgeschlossenen Quartale seit "+FIRST_BILLING_YEAR;
+  const ySel=$("invoiceYear");
+  const prevPeriod=$("invoicePeriod").value;
+  invoicePeriodList=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean).concat(completedQuarters()))];
+  invoicePeriodList.sort((a,b)=>periodValue(b)-periodValue(a));
+  const years=[...new Set(invoicePeriodList.map(p=>p.slice(0,4)))];
+  const prevYear=ySel.value;
+  ySel.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join("");
+  const wantYear=prevPeriod?prevPeriod.slice(0,4):prevYear;
+  if(years.includes(wantYear)) ySel.value=wantYear; else if(years.length) ySel.value=years[0];
+  ySel.disabled=!years.length;
+  fillInvoiceQuarters(prevPeriod?prevPeriod.slice(-1):"");
+  ySel.onchange=()=>fillInvoiceQuarters("");
+  $("invoiceQuarter").onchange=syncInvoicePeriod;
+  ySel.title="Alle abgeschlossenen Quartale seit "+FIRST_BILLING_YEAR;
 }
 function renderAll() {
   $("mProperties").textContent=properties.length;
