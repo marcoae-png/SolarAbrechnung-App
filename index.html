@@ -248,8 +248,8 @@ tfoot th{color:#24715e}
       <p id="smartmeApiMessage" class="small muted" aria-live="polite">Noch keine Smart-me-Verbindung geprüft.</p>
       <div id="smartmeDevices"></div>
     </div>
-    <!-- Manueller Excel-Import bleibt intern erhalten, wird im Portal aber nicht mehr angezeigt. -->
-    <div style="display:none" aria-hidden="true">
+    <!-- Manueller Excel-Import: Ausweichlösung, falls Smart-me für ein Quartal keine Zählerstände liefert. -->
+    <div>
     <div class="grid two"><div class="card"><h3>Smart-me-Excel importieren</h3><p class="muted small">Mehrere Bezügerdateien für dasselbe vollständige Kalenderquartal auswählen.</p><div class="drop"><b>Dateien auswählen</b><p class="muted small">Excel .xlsx – mehrere Dateien möglich</p><input id="excelFiles" type="file" accept=".xlsx,.xls" multiple></div><div class="toolbar"><button class="btn" id="inspectFilesBtn">Dateien prüfen</button><button class="btn alt" id="saveImportBtn" disabled>Import in Firebase speichern</button></div><div id="importMessage" class="small muted">Noch keine Dateien ausgewählt.</div></div>
     <div class="card"><h3>Import-Regeln</h3><ul class="small muted"><li>Bezüger/Zähler wird aus B2 erkannt.</li><li>Abrechnungszeitraum wird aus B3 gelesen.</li><li>Gesamtbezug wird in Spalte E bei «Import Total» bzw. «Bezug Total» gesucht.</li><li>Alle Dateien müssen dasselbe volle Kalenderquartal enthalten.</li><li>Jeder Zähler darf nur einmal vorkommen.</li></ul></div></div>
     <div class="card" style="margin-top:14px"><h3>Prüfergebnis</h3><div id="importPreview" class="empty">Nach der Dateiprüfung erscheint hier die Übersicht.</div></div>
