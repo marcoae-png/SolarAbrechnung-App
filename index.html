@@ -192,7 +192,37 @@ tr.late-row{background:#fff7f4}
 .alert.ok{background:#eaf5ef;border-left:4px solid #24715e}
 .alert{border-left:4px solid #c9a765}.alert.error{border-left-color:#a33c2c}
 tfoot th{color:#24715e}
-</style>
+
+/* Erweiterte Gestaltung und Bedienung des Rechnungsregisters */
+.reg-toolbar{display:grid;grid-template-columns:2fr repeat(5,minmax(130px,1fr));gap:10px;align-items:end;margin:12px 0 4px}
+.reg-toolbar .field{min-width:0;margin:0}
+.reg-toolbar .field input,.reg-toolbar .field select{min-width:0;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:#fff;min-height:43px;color:var(--ink)}
+.reg-search input{background:#f7faf8!important;border-color:#bfd3c7!important}
+.reg-actions{grid-column:1/-1;margin:0 0 8px}
+.reg-hint{font-size:11px;color:var(--muted);padding:8px 11px;background:#f1f6f2;border-radius:9px;margin:6px 0 12px}
+#invoiceList .reg-metrics{margin:14px 0 18px}
+#invoiceList .reg-metrics .metric{border-radius:14px;box-shadow:0 8px 22px #123d3510}
+#invoiceList .card:has(table){border-left:4px solid #dce8df;padding:17px 18px}
+#invoiceList .card:has(table) h3{display:flex;align-items:center;gap:9px}
+#invoiceList .card:has(table) h3:before{content:"";width:9px;height:9px;border-radius:50%;background:var(--gold)}
+#invoiceList table{min-width:780px}
+#invoiceList tbody tr{transition:background .15s}
+#invoiceList tbody tr:nth-child(even){background:#fbfcfa}
+#invoiceList tbody tr:hover{background:#edf5ef}
+#invoiceList tr.late-row{background:#fff1ed}
+#invoiceList tr.late-row:hover{background:#ffe7df}
+#invoiceList .pill{padding:5px 10px;letter-spacing:.01em}
+#invoiceList .pill.paid{background:#dff2e6;color:#176444}
+#invoiceList .pill.open{background:#fff0c9;color:#875b08}
+#invoiceList .pill.late{background:#ffe0d9;color:#a12f22}
+#invoiceList td .btn{padding:7px 10px;font-size:11px;border-radius:8px}
+#invoiceList td .btn.danger{background:#fff1ed}
+#invoiceList .sec-title{display:flex;align-items:center;gap:10px;margin:25px 0 8px;padding:9px 13px;border-radius:10px;background:linear-gradient(90deg,#eaf2ed,#f7f5ee);border-left:4px solid var(--gold);font-weight:700}
+#invoiceList .regchart{background:linear-gradient(135deg,#f8fbf8,#f2f6f2)}
+#invoiceList .regbar{width:100%!important}
+@media(max-width:1100px){.reg-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.reg-search{grid-column:span 2}}
+@media(max-width:650px){.reg-toolbar{grid-template-columns:1fr 1fr}.reg-search{grid-column:1/-1}.reg-actions{grid-column:1/-1}.reg-actions .btn{flex:1}}
+\n</style>
 </head>
 <body>
 <div class="topbar"><div class="container"><span><strong>SolarAbrechnung.ch</strong> · Solarstromabrechnung einfach gemacht</span><span>Für Eigentümer · Verwaltungen · Solarteure</span></div></div>
@@ -323,13 +353,16 @@ tfoot th{color:#24715e}
       <button class="btn" id="createInvoiceBtn">Rechnungen erstellen</button><div id="invoiceMessage" class="alert" style="display:none"></div><div id="invoicePreview"></div>
     </div>
     <div class="card" style="margin-top:15px"><h3>Rechnungsregister</h3>
-      <div class="solar-toolbar" style="margin-top:6px">
+      <div class="reg-toolbar">
+        <div class="field reg-search"><label for="invoiceSearch">Rechnungen durchsuchen</label><input id="invoiceSearch" type="search" placeholder="Rechnungsnummer, Bezüger, Liegenschaft oder Quartal …"></div>
         <div class="field"><label for="invoiceFilterYear">Jahr</label><select id="invoiceFilterYear"><option value="">Alle Jahre</option></select></div>
+        <div class="field"><label for="invoiceFilterProperty">Liegenschaft</label><select id="invoiceFilterProperty"><option value="">Alle Liegenschaften</option></select></div>
         <div class="field"><label for="invoiceFilterCustomer">Bezüger</label><select id="invoiceFilterCustomer"><option value="">Alle Bezüger</option></select></div>
-        <div class="field"><label for="invoiceFilterStatus">Status</label><select id="invoiceFilterStatus"><option value="">Alle Status</option><option value="open">Offen</option><option value="overdue">Überfällig</option><option value="paid">Bezahlt</option></select></div>
-        <button class="btn alt" id="invoiceFilterReset" style="margin-bottom:12px">Filter zurücksetzen</button>
-        <button class="btn gold" id="invoiceCsvBtn" style="margin-bottom:12px">Als CSV exportieren</button>
+        <div class="field"><label for="invoiceFilterStatus">Zahlungsstatus</label><select id="invoiceFilterStatus"><option value="">Alle Status</option><option value="open">Offen</option><option value="overdue">Überfällig</option><option value="paid">Bezahlt</option></select></div>
+        <div class="field"><label for="invoiceSort">Sortieren nach</label><select id="invoiceSort"><option value="period">Neueste zuerst</option><option value="due">Fälligkeit</option><option value="amount-desc">Betrag: hoch → tief</option><option value="amount-asc">Betrag: tief → hoch</option><option value="customer">Bezüger A–Z</option></select></div>
+        <div class="toolbar reg-actions"><button class="btn alt" id="invoiceFilterReset">Filter zurücksetzen</button><button class="btn gold" id="invoiceCsvBtn">Als CSV exportieren</button></div>
       </div>
+      <div id="invoiceRegisterHint" class="reg-hint">Nutze Suche und Filter, um deine Rechnungen gezielt zu finden.</div>
       <div id="invoiceList" class="empty">Noch keine definitiven Rechnungen vorhanden.</div></div>
   </section>
   <section class="panel" id="panel-solar"><div class="card"><h3>Solar-Manager-Verbindung</h3><p class="muted small">Deine Zugangsdaten werden über den sicheren Cloudflare-Worker verschlüsselt gespeichert. Den API-Schlüssel nicht weitergeben.</p><div class="field"><label for="solarGatewayId">Gateway-ID</label><input id="solarGatewayId" placeholder="Gateway-ID eingeben"></div><div class="field"><label for="solarApiKey">Solar-Manager API-Schlüssel</label><input id="solarApiKey" type="password" placeholder="Persönlichen API-Schlüssel eingeben"></div><div class="toolbar"><button class="btn" id="saveSolarConnectionBtn">Verbindung speichern</button><button class="btn danger" id="deleteSolarConnectionBtn">Verbindung löschen</button></div><p id="solarConnectionMessage" class="small muted"></p></div></section>
@@ -1401,7 +1434,7 @@ function invoiceDueDate(x){
   return Number.isNaN(d.getTime())?null:d;
 }
 function invoicePaymentState(x){ return x.paymentStatus==="paid"?"paid":"open"; }
-let regYear="", regCustomer="", regStatus="";
+let regYear="", regCustomer="", regStatus="", regProperty="", regSearch="", regSort="period";
 const regName=x=>x.customerName||x.data?.customer?.name||"Ohne Bezügerangabe";
 const regKey=x=>x.customerId||("n:"+regName(x));
 function regStatusOf(x){
@@ -1409,7 +1442,25 @@ function regStatusOf(x){
   const d=invoiceDueDate(x), t=new Date(); t.setHours(0,0,0,0);
   return d&&d<t?"overdue":"open";
 }
-const regKeep=x=>(!regYear||String(x.period||"").startsWith(regYear))&&(!regCustomer||regKey(x)===regCustomer)&&(!regStatus||regStatusOf(x)===regStatus);
+const regKeep=x=>{
+  const propertyName=properties.find(p=>p.id===x.propertyId)?.name||"";
+  const hay=[x.invoiceNo,x.period,regName(x),propertyName].join(" ").toLocaleLowerCase("de-CH");
+  return (!regYear||String(x.period||"").startsWith(regYear))&&
+    (!regCustomer||regKey(x)===regCustomer)&&
+    (!regStatus||regStatusOf(x)===regStatus)&&
+    (!regProperty||x.propertyId===regProperty)&&
+    (!regSearch||hay.includes(regSearch.toLocaleLowerCase("de-CH")));
+};
+function sortRegister(list){
+  const copy=[...list];
+  return copy.sort((a,b)=>{
+    if(regSort==="amount-desc") return Number(b.total||0)-Number(a.total||0);
+    if(regSort==="amount-asc") return Number(a.total||0)-Number(b.total||0);
+    if(regSort==="customer") return regName(a).localeCompare(regName(b),"de-CH");
+    if(regSort==="due") return (invoiceDueDate(a)?.getTime()||Infinity)-(invoiceDueDate(b)?.getTime()||Infinity);
+    return periodValue(b.period)-periodValue(a.period)||String(b.invoiceNo||"").localeCompare(String(a.invoiceNo||""));
+  });
+}
 function renderInvoiceRegister(){
   const years=[...new Set(invoices.map(x=>String(x.period||"").slice(0,4)).filter(Boolean))].sort().reverse();
   const custs=new Map(); invoices.forEach(x=>custs.set(regKey(x),regName(x)));
@@ -1417,22 +1468,33 @@ function renderInvoiceRegister(){
   if(regCustomer&&!custs.has(regCustomer)) regCustomer="";
   $("invoiceFilterYear").innerHTML='<option value="">Alle Jahre</option>'+years.map(y=>`<option value="${esc(y)}">${esc(y)}</option>`).join("");
   $("invoiceFilterCustomer").innerHTML='<option value="">Alle Bezüger</option>'+[...custs.entries()].sort((a,b)=>a[1].localeCompare(b[1],"de-CH")).map(([k,n])=>`<option value="${esc(k)}">${esc(n)}</option>`).join("");
-  $("invoiceFilterYear").value=regYear; $("invoiceFilterCustomer").value=regCustomer; $("invoiceFilterStatus").value=regStatus;
-  const list=invoices.filter(regKeep);
-  if(invoices.length&&!list.length&&!invoicesError){ $("invoiceList").innerHTML='<div class="empty">Keine Rechnungen für diese Filterauswahl.</div>'; return; }
+  const propertySelect=$("invoiceFilterProperty");
+  const previousProperty=regProperty;
+  propertySelect.innerHTML='<option value="">Alle Liegenschaften</option>'+properties.slice().sort((a,b)=>a.name.localeCompare(b.name,"de-CH")).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+  if(previousProperty&&!properties.some(p=>p.id===previousProperty)) regProperty="";
+  $("invoiceFilterYear").value=regYear; $("invoiceFilterCustomer").value=regCustomer;
+  $("invoiceFilterStatus").value=regStatus; propertySelect.value=regProperty;
+  $("invoiceSearch").value=regSearch; $("invoiceSort").value=regSort;
+  const list=sortRegister(invoices.filter(regKeep));
+  const hint=$("invoiceRegisterHint");
+  if(hint) hint.textContent=`${list.length} von ${invoices.length} Rechnungen angezeigt · Suche, Filter und Sortierung werden sofort angewendet.`;
+  if(invoices.length&&!list.length&&!invoicesError){ $("invoiceList").innerHTML='<div class="empty">Keine Rechnungen für diese Filterauswahl. Passe die Suche oder Filter an.</div>'; return; }
   renderInvoiceRegisterList(list);
 }
 $("invoiceFilterYear").onchange=()=>{regYear=$("invoiceFilterYear").value;renderInvoiceRegister();};
 $("invoiceFilterCustomer").onchange=()=>{regCustomer=$("invoiceFilterCustomer").value;renderInvoiceRegister();};
 $("invoiceFilterStatus").onchange=()=>{regStatus=$("invoiceFilterStatus").value;renderInvoiceRegister();};
-$("invoiceFilterReset").onclick=()=>{regYear="";regCustomer="";regStatus="";renderInvoiceRegister();};
+$("invoiceFilterProperty").onchange=()=>{regProperty=$("invoiceFilterProperty").value;renderInvoiceRegister();};
+$("invoiceSearch").oninput=()=>{regSearch=$("invoiceSearch").value.trim();renderInvoiceRegister();};
+$("invoiceSort").onchange=()=>{regSort=$("invoiceSort").value;renderInvoiceRegister();};
+$("invoiceFilterReset").onclick=()=>{regYear="";regCustomer="";regStatus="";regProperty="";regSearch="";regSort="period";renderInvoiceRegister();};
 $("invoiceCsvBtn").onclick=()=>{
-  const list=invoices.filter(regKeep).sort((a,b)=>String(a.invoiceNo).localeCompare(String(b.invoiceNo)));
+  const list=sortRegister(invoices.filter(regKeep));
   if(!list.length){alert("Keine Rechnungen zum Exportieren.");return;}
-  const cell=v=>{let s=String(v??"");if(/^[=+@\-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+  const cell=v=>{let s=String(v??"");if(/^[=+@\\-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
   const label={paid:"Bezahlt",open:"Offen",overdue:"Überfällig"};
   const rows=[["Rechnungsnummer","Quartal","Bezüger","Liegenschaft","Betrag CHF","Status","Fällig am"],...list.map(x=>{const d=invoiceDueDate(x);return [x.invoiceNo,x.period,regName(x),properties.find(p=>p.id===x.propertyId)?.name||"",Number(x.total||0).toFixed(2),label[regStatusOf(x)],d?d.toLocaleDateString("de-CH"):""];})];
-  const csv="\uFEFF"+rows.map(r=>r.map(cell).join(";")).join("\r\n");
+  const csv="\\uFEFF"+rows.map(r=>r.map(cell).join(";")).join("\\r\\n");
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
   const a=document.createElement("a");a.href=url;a.download="Rechnungsregister.csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 };
@@ -1468,7 +1530,7 @@ function renderInvoiceRegisterList(invoices){
       byCustomer.get(name).push(x);
     });
     const customerSections=[...byCustomer.entries()].sort((a,b)=>a[0].localeCompare(b[0],"de-CH")).map(([customerName,customerInvoices])=>
-      `<div class="card" style="margin:12px 0"><h3>${esc(customerName)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Liegenschaft</th><th>Betrag</th><th>Zahlungsstatus</th><th>Fällig</th><th>Aktionen</th></tr></thead><tbody>${customerInvoices.map(x=>{
+      `<div class="card" style="margin:12px 0"><h3>${esc(customerName)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Liegenschaft</th><th>Betrag</th><th>Zahlungsstatus</th><th>Fällig</th><th>Aktionen</th></tr></thead><tbody>${sortRegister(customerInvoices).map(x=>{
         const isPaid=invoicePaymentState(x)==="paid", due=invoiceDueDate(x), late=!isPaid&&due&&due<today;
         const dueText=due?due.toLocaleDateString("de-CH"):"–";
         return `<tr${late?' class="late-row"':''}><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td><span class="pill ${isPaid?"paid":late?"late":"open"}">${isPaid?"Bezahlt":late?"Überfällig":"Offen"}</span></td><td>${dueText}</td><td style="white-space:nowrap"><button class="btn alt" data-payment-toggle="${esc(x.id)}">${isPaid?"Wieder öffnen":"Als bezahlt markieren"}</button> <button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`;
