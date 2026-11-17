@@ -209,7 +209,7 @@ tfoot th{color:#24715e}
   </div></div>
 <div class="wrap" style="padding-top:22px">
   <nav class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="properties">Liegenschaften</button><button class="tab" data-tab="customers">Bezüger & Zähler</button><button class="tab" data-tab="import">Smart-me-Import</button><button class="tab" data-tab="easee">Easee-Import</button><button class="tab" data-tab="tariffs">Tarife</button><button class="tab" data-tab="invoices">Rechnungsregister</button><button class="tab" data-tab="solar">Solar-Manager</button>
+    <button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="properties">Liegenschaften</button><button class="tab" data-tab="customers">Bezüger & Zähler</button><button class="tab" data-tab="import">Smart-me</button><button class="tab" data-tab="easee">Easee</button><button class="tab" data-tab="tariffs">Tarife</button><button class="tab" data-tab="invoices">Rechnungsregister</button><button class="tab" data-tab="solar">Solar-Manager</button>
   </nav>
   <section class="panel active" id="panel-dashboard">
     <div class="grid"><div class="metric"><span>Liegenschaften</span><b id="mProperties">0</b></div><div class="metric"><span>Bezüger / Zähler</span><b id="mCustomers">0</b></div><div class="metric"><span>Importierte Quartale</span><b id="mImports">0</b></div></div>
@@ -808,10 +808,20 @@ function setEaseeQuarterDefaults(){
   if(!$("easeeApiFrom").value) $("easeeApiFrom").value=iso(start);
   if(!$("easeeApiTo").value) $("easeeApiTo").value=iso(end);
 }
+async function ensureEaseeSiteId(){
+  let siteId=String($("easeeSiteId").value||"").trim();
+  if(siteId) return siteId;
+  const sites=await easeeApiRequest("/api/easee-sites");
+  const first=(sites.sites||[])[0];
+  siteId=String(first?.siteId||first?.id||"");
+  if(siteId) $("easeeSiteId").value=siteId;
+  return siteId;
+}
 async function loadEaseeConnection(){
   const data=await easeeApiRequest("/api/easee-connection");
   if(data.connected){$("easeeApiMessage").textContent="Easee-Konto ist sicher verbunden.";$("easeeApiMessage").className="small";}
   else {$("easeeApiMessage").textContent="Noch keine Easee-Verbindung eingerichtet.";$("easeeApiMessage").className="small muted";}
+  if(data.connected) ensureEaseeSiteId().catch(()=>{});
   return data;
 }
 $("easeeConnectBtn").onclick=async()=>{
@@ -877,7 +887,7 @@ $("saveEaseeImportBtn").onclick=async()=>{try{if(!pendingEaseeImport)throw new E
 async function autoImportEaseeForPeriod(propertyId, period) {
   const connection = await loadEaseeConnection();
   if (!connection.connected) return { connected:false, imported:false };
-  const siteId = String($("easeeSiteId").value || "").trim();
+  const siteId = await ensureEaseeSiteId();
   if (!siteId) throw new Error("Keine Easee-Site gefunden. Bitte unter «Easee» einmal «Verbindung prüfen» ausführen.");
   const range = quarterDates(period);
   const from = range.from.slice(0,10), to = range.to.slice(0,10);
