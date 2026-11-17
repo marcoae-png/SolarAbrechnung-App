@@ -261,7 +261,19 @@ tfoot th{color:#24715e}
     <button class="tab active" data-tab="dashboard">Dashboard</button><button class="tab" data-tab="properties">Liegenschaften</button><button class="tab" data-tab="customers">Bezüger & Zähler</button><button class="tab" data-tab="import">Smart-me</button><button class="tab" data-tab="easee">Easee</button><button class="tab" data-tab="tariffs">Tarife</button><button class="tab" data-tab="invoices">Rechnungsregister</button><button class="tab" data-tab="solar">Solar-Manager</button>
   </nav>
   <section class="panel active" id="panel-dashboard">
-    <div class="grid"><div class="metric"><span>Liegenschaften</span><b id="mProperties">0</b></div><div class="metric"><span>Bezüger / Zähler</span><b id="mCustomers">0</b></div><div class="metric"><span>Importierte Quartale</span><b id="mImports">0</b></div></div>
+    <div class="dashboard-heading">
+      <div><h2>Übersicht</h2><p class="muted small">Die wichtigsten Kennzahlen deiner Solarabrechnung auf einen Blick.</p></div>
+      <span class="dashboard-live">Aktuelle Übersicht</span>
+    </div>
+    <div class="grid dashboard-kpis">
+      <div class="metric kpi-green"><span>Liegenschaften</span><b id="mProperties">0</b><small>Erfasste Objekte</small></div>
+      <div class="metric kpi-blue"><span>Bezüger / Zähler</span><b id="mCustomers">0</b><small>Aktive Zuordnungen</small></div>
+      <div class="metric kpi-gold"><span>Importierte Quartale</span><b id="mImports">0</b><small>Mit Energiedaten</small></div>
+      <div class="metric kpi-purple"><span>Rechnungen total</span><b id="mInvoiceCount">0</b><small>Erstellte Rechnungen</small></div>
+      <div class="metric kpi-orange"><span>Offene Beträge</span><b id="mOpenAmount">CHF 0.00</b><small id="mOpenCount">0 offene Rechnungen</small></div>
+      <div class="metric kpi-teal"><span>Bezahlt</span><b id="mPaidAmount">CHF 0.00</b><small id="mPaidCount">0 bezahlte Rechnungen</small></div>
+      <div class="metric kpi-red"><span>Überfällig</span><b id="mOverdueCount">0</b><small>Offene Rechnungen nach Fälligkeit</small></div>
+    </div>
     <div class="card" style="margin-top:15px">
       <h3>Solar-Dashboard</h3><p class="muted small">Solarstromanteil, finanzielle Ersparnis und Kennzahlen der gesamten Anlage.</p>
       <div class="solar-toolbar">
@@ -736,6 +748,19 @@ function renderAll() {
   $("mProperties").textContent=properties.length;
   $("mCustomers").textContent=customers.length;
   $("mImports").textContent=new Set([...imports,...easeeImports].map(x=>x.period).filter(Boolean)).size;
+  const moneyCHF=value=>new Intl.NumberFormat("de-CH",{style:"currency",currency:"CHF"}).format(Number(value)||0);
+  const openInvoices=invoices.filter(x=>(x.paymentStatus||"open")!=="paid");
+  const paidInvoices=invoices.filter(x=>x.paymentStatus==="paid");
+  const openTotal=openInvoices.reduce((sum,x)=>sum+(Number(x.total)||0),0);
+  const paidTotal=paidInvoices.reduce((sum,x)=>sum+(Number(x.total)||0),0);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const overdueInvoices=openInvoices.filter(x=>{const due=invoiceDueDate(x);return due instanceof Date&&!Number.isNaN(due.getTime())&&due<today;});
+  $("mInvoiceCount").textContent=invoices.length;
+  $("mOpenAmount").textContent=moneyCHF(openTotal);
+  $("mOpenCount").textContent=`${openInvoices.length} offene Rechnungen`;
+  $("mPaidAmount").textContent=moneyCHF(paidTotal);
+  $("mPaidCount").textContent=`${paidInvoices.length} bezahlte Rechnungen`;
+  $("mOverdueCount").textContent=overdueInvoices.length;
   $("welcomeCard").classList.toggle("hidden",properties.length>0);
   $("setupHint").textContent=properties.length?"Deine Liegenschaften sind eingerichtet. Verwalte jetzt die Bezüger und importiere die Quartalsdaten.":"Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».";
   const prevInvoiceProperty=$("invoiceProperty").value;
@@ -1390,7 +1415,75 @@ function invoicePage(inv){
   </div></section>`;
 }
 function invoicesDocument(list){
-  return `<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Rechnungen</title><style>${INVOICE_CSS}</style></head><body>${list.map(invoicePage).join("")}</body></html>`;
+  return `<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Rechnungen</title><style>${INVOICE_CSS}
+/* Feinschliff: Rechnungsregister-Titel und Dashboard-Einstieg */
+#panel-invoices .card:has(#invoiceList) > h3 {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:-18px -18px 18px;
+  padding:16px 18px;
+  color:#fff;
+  background:linear-gradient(115deg,#123f32 0%,#24715e 58%,#b58a42 100%);
+  border-radius:14px 14px 10px 10px;
+  letter-spacing:.2px;
+  box-shadow:0 5px 14px rgba(18,63,50,.16);
+}
+#panel-invoices .card:has(#invoiceList) > h3:before {
+  content:"▤";
+  display:inline-grid;
+  place-items:center;
+  width:32px;
+  height:32px;
+  border-radius:9px;
+  color:#123f32;
+  background:#f4d88c;
+  font-size:19px;
+}
+#panel-dashboard > .grid:first-child > .metric {
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(36,113,94,.16);
+  box-shadow:0 5px 16px rgba(18,63,50,.08);
+}
+#panel-dashboard > .grid:first-child > .metric:nth-child(1) {
+  background:linear-gradient(135deg,#e7f3ed,#fff);
+  border-top:4px solid #24715e;
+}
+#panel-dashboard > .grid:first-child > .metric:nth-child(2) {
+  background:linear-gradient(135deg,#eef2fa,#fff);
+  border-top:4px solid #5276a8;
+}
+#panel-dashboard > .grid:first-child > .metric:nth-child(3) {
+  background:linear-gradient(135deg,#fbf2df,#fff);
+  border-top:4px solid #c49a4c;
+}
+#panel-dashboard > .grid:first-child > .metric b {
+  color:#173f34;
+}
+
+
+/* Dashboard: kompakte, farbige Kennzahlen-Übersicht */
+.dashboard-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 13px}
+.dashboard-heading h2{margin:0;color:#173f34;font-size:23px}
+.dashboard-heading p{margin:4px 0 0}
+.dashboard-live{font-size:11px;font-weight:700;letter-spacing:.3px;color:#21634f;background:#e7f3ed;border:1px solid #cce4d7;padding:7px 11px;border-radius:999px;white-space:nowrap}
+.dashboard-kpis{grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px}
+.dashboard-kpis .metric{min-height:112px;padding:15px 16px;border-radius:15px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;box-shadow:0 5px 16px rgba(18,63,50,.07);border:1px solid transparent;transition:transform .18s,box-shadow .18s}
+.dashboard-kpis .metric:hover{transform:translateY(-2px);box-shadow:0 9px 20px rgba(18,63,50,.11)}
+.dashboard-kpis .metric span{font-size:12px;font-weight:700;color:#43554e}
+.dashboard-kpis .metric b{font-size:25px;line-height:1.15;color:#173f34;overflow-wrap:anywhere}
+.dashboard-kpis .metric small{font-size:10px;color:#68776f}
+.dashboard-kpis .kpi-green{background:linear-gradient(140deg,#e5f3eb,#fff);border-color:#cde5d6;border-top:4px solid #32845d}
+.dashboard-kpis .kpi-blue{background:linear-gradient(140deg,#e9f0fb,#fff);border-color:#d4e0f2;border-top:4px solid #5276a8}
+.dashboard-kpis .kpi-gold{background:linear-gradient(140deg,#fbf2df,#fff);border-color:#efe2c4;border-top:4px solid #c49a4c}
+.dashboard-kpis .kpi-purple{background:linear-gradient(140deg,#f0eafa,#fff);border-color:#e1d6f0;border-top:4px solid #8967b1}
+.dashboard-kpis .kpi-orange{background:linear-gradient(140deg,#fff0e3,#fff);border-color:#f3dcc8;border-top:4px solid #d88742}
+.dashboard-kpis .kpi-teal{background:linear-gradient(140deg,#e2f3f2,#fff);border-color:#cce7e4;border-top:4px solid #39958d}
+.dashboard-kpis .kpi-red{background:linear-gradient(140deg,#fbe9e8,#fff);border-color:#f0d2d0;border-top:4px solid #c85e58}
+@media(max-width:600px){.dashboard-heading{align-items:flex-start;flex-direction:column}.dashboard-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-kpis .metric{min-height:105px;padding:12px}.dashboard-kpis .metric b{font-size:21px}}
+
+</style></head><body>${list.map(invoicePage).join("")}</body></html>`;
 }
 let currentViewerList=[];
 function showInvoices(list,title){
@@ -1518,7 +1611,7 @@ function renderInvoiceRegisterList(invoices){
     <div class="metric m3"><span>Bezahlt</span><b>${chf(sum(paid))}</b><small>${paid.length} Rechnung(en) · ${quote.toLocaleString("de-CH",{maximumFractionDigits:0})} % bezahlt</small></div>
     <div class="metric m4"><span>Überfällig</span><b>${chf(sum(overdue))}</b><small>${overdue.length} Rechnung(en)</small></div>
   </div>
-  <div class="regchart"><h4>Fakturiert pro Quartal</h4>${perStats.map(s=>`<div class="regrow"><b>${esc(s.per)}</b><div class="regbar" title="Total ${chf(s.total)}" style="width:${(s.total/maxTotal*100).toFixed(1)}%"><i style="width:${s.total?(s.paid/s.total*100).toFixed(2):0}%;background:#24715e"></i><i style="width:${s.total?(s.open/s.total*100).toFixed(2):0}%;background:#c9a765"></i><i style="width:${s.total?(s.overdue/s.total*100).toFixed(2):0}%;background:#a33c2c"></i></div><span style="text-align:right"><b>${chf(s.total)}</b></span></div>`).join("")}<div class="regleg"><span style="--c:#24715e">Bezahlt</span><span style="--c:#c9a765">Offen</span><span style="--c:#a33c2c">Überfällig</span></div></div>`;
+`;
   const overdueHtml=overdue.length?`<div class="card" style="margin:12px 0"><h3>Überfällige Rechnungen</h3><p class="small muted">Diese Rechnungen sind offen und ihr Zahlungsziel ist überschritten.</p><div class="table-wrap"><table><thead><tr><th>Rechnung</th><th>Bezüger</th><th>Fällig seit</th><th>Betrag</th><th></th></tr></thead><tbody>${overdue.map(x=>{const d=invoiceDueDate(x);return `<tr><td>${esc(x.invoiceNo)}</td><td>${esc(x.customerName||x.data?.customer?.name||"")}</td><td>${d.toLocaleDateString("de-CH")}</td><td><b>${chf(x.total)}</b></td><td><button class="btn alt" data-remind-invoice="${esc(x.id)}">Zahlungserinnerung</button></td></tr>`;}).join("")}</tbody></table></div></div>`:`<div class="alert ok" style="margin:12px 0">Keine überfälligen offenen Rechnungen.</div>`;
   const periods=[...new Set(invoices.map(x=>x.period))].sort((a,b)=>periodValue(b)-periodValue(a));
   el.innerHTML=summary+overdueHtml+periods.map(per=>{
