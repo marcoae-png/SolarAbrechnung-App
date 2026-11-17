@@ -160,6 +160,25 @@ footer.site a.fl:hover{color:#e8d6ad}
   .grid,.grid.two{grid-template-columns:1fr}
   .app-hero h2{font-size:27px}
 }
+/* Rechnungsregister farbig */
+.reg-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:12px 0}
+.reg-metrics .metric{border-top:4px solid var(--c);background:linear-gradient(180deg,var(--bgc),#fff 70%)}
+.reg-metrics .metric b{color:var(--cd)}
+.reg-metrics .metric small{color:var(--muted);font-size:11px}
+.reg-metrics .m1{--c:#3a5fb0;--bgc:#eaf0fb;--cd:#3a5fb0}
+.reg-metrics .m2{--c:#c9a765;--bgc:#fbf3e2;--cd:#a2792a}
+.reg-metrics .m3{--c:#24715e;--bgc:#eaf2ed;--cd:#24715e}
+.reg-metrics .m4{--c:#a33c2c;--bgc:#fdeeea;--cd:#a33c2c}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+.pill.paid{background:#eaf5ef;color:#24715e}.pill.open{background:#fbf3e2;color:#8a5a00}.pill.late{background:#fdeeea;color:#a33c2c}
+tr.late-row{background:#fff7f4}
+.regchart{margin:12px 0;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fbfdfb}
+.regchart h4{margin:0 0 8px;font:normal 16px Georgia,serif;color:var(--forest)}
+.regrow{display:grid;grid-template-columns:70px 1fr 120px;gap:10px;align-items:center;margin:6px 0;font-size:12px}
+.regbar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#edf1ed}.regbar i{display:block;height:100%}
+.regleg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:8px}
+.regleg span:before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:var(--c)}
+@media(max-width:850px){.reg-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.regrow{grid-template-columns:60px 1fr 100px}}
 /* Farbige Kennzahlen im Dashboard */
 .grid>.metric{border-top:4px solid var(--c);background:linear-gradient(180deg,var(--bgc),#fff 70%)}
 .grid>.metric:nth-child(1){--c:#24715e;--bgc:#eaf2ed}.grid>.metric:nth-child(2){--c:#3a5fb0;--bgc:#eaf0fb}.grid>.metric:nth-child(3){--c:#c9a765;--bgc:#fbf3e2}
@@ -307,7 +326,9 @@ tfoot th{color:#24715e}
       <div class="solar-toolbar" style="margin-top:6px">
         <div class="field"><label for="invoiceFilterYear">Jahr</label><select id="invoiceFilterYear"><option value="">Alle Jahre</option></select></div>
         <div class="field"><label for="invoiceFilterCustomer">Bezüger</label><select id="invoiceFilterCustomer"><option value="">Alle Bezüger</option></select></div>
+        <div class="field"><label for="invoiceFilterStatus">Status</label><select id="invoiceFilterStatus"><option value="">Alle Status</option><option value="open">Offen</option><option value="overdue">Überfällig</option><option value="paid">Bezahlt</option></select></div>
         <button class="btn alt" id="invoiceFilterReset" style="margin-bottom:12px">Filter zurücksetzen</button>
+        <button class="btn gold" id="invoiceCsvBtn" style="margin-bottom:12px">Als CSV exportieren</button>
       </div>
       <div id="invoiceList" class="empty">Noch keine definitiven Rechnungen vorhanden.</div></div>
   </section>
@@ -1380,10 +1401,15 @@ function invoiceDueDate(x){
   return Number.isNaN(d.getTime())?null:d;
 }
 function invoicePaymentState(x){ return x.paymentStatus==="paid"?"paid":"open"; }
-let regYear="", regCustomer="";
+let regYear="", regCustomer="", regStatus="";
 const regName=x=>x.customerName||x.data?.customer?.name||"Ohne Bezügerangabe";
 const regKey=x=>x.customerId||("n:"+regName(x));
-const regKeep=x=>(!regYear||String(x.period||"").startsWith(regYear))&&(!regCustomer||regKey(x)===regCustomer);
+function regStatusOf(x){
+  if(invoicePaymentState(x)==="paid") return "paid";
+  const d=invoiceDueDate(x), t=new Date(); t.setHours(0,0,0,0);
+  return d&&d<t?"overdue":"open";
+}
+const regKeep=x=>(!regYear||String(x.period||"").startsWith(regYear))&&(!regCustomer||regKey(x)===regCustomer)&&(!regStatus||regStatusOf(x)===regStatus);
 function renderInvoiceRegister(){
   const years=[...new Set(invoices.map(x=>String(x.period||"").slice(0,4)).filter(Boolean))].sort().reverse();
   const custs=new Map(); invoices.forEach(x=>custs.set(regKey(x),regName(x)));
@@ -1391,14 +1417,25 @@ function renderInvoiceRegister(){
   if(regCustomer&&!custs.has(regCustomer)) regCustomer="";
   $("invoiceFilterYear").innerHTML='<option value="">Alle Jahre</option>'+years.map(y=>`<option value="${esc(y)}">${esc(y)}</option>`).join("");
   $("invoiceFilterCustomer").innerHTML='<option value="">Alle Bezüger</option>'+[...custs.entries()].sort((a,b)=>a[1].localeCompare(b[1],"de-CH")).map(([k,n])=>`<option value="${esc(k)}">${esc(n)}</option>`).join("");
-  $("invoiceFilterYear").value=regYear; $("invoiceFilterCustomer").value=regCustomer;
+  $("invoiceFilterYear").value=regYear; $("invoiceFilterCustomer").value=regCustomer; $("invoiceFilterStatus").value=regStatus;
   const list=invoices.filter(regKeep);
   if(invoices.length&&!list.length&&!invoicesError){ $("invoiceList").innerHTML='<div class="empty">Keine Rechnungen für diese Filterauswahl.</div>'; return; }
   renderInvoiceRegisterList(list);
 }
 $("invoiceFilterYear").onchange=()=>{regYear=$("invoiceFilterYear").value;renderInvoiceRegister();};
 $("invoiceFilterCustomer").onchange=()=>{regCustomer=$("invoiceFilterCustomer").value;renderInvoiceRegister();};
-$("invoiceFilterReset").onclick=()=>{regYear="";regCustomer="";renderInvoiceRegister();};
+$("invoiceFilterStatus").onchange=()=>{regStatus=$("invoiceFilterStatus").value;renderInvoiceRegister();};
+$("invoiceFilterReset").onclick=()=>{regYear="";regCustomer="";regStatus="";renderInvoiceRegister();};
+$("invoiceCsvBtn").onclick=()=>{
+  const list=invoices.filter(regKeep).sort((a,b)=>String(a.invoiceNo).localeCompare(String(b.invoiceNo)));
+  if(!list.length){alert("Keine Rechnungen zum Exportieren.");return;}
+  const cell=v=>{let s=String(v??"");if(/^[=+@\-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';};
+  const label={paid:"Bezahlt",open:"Offen",overdue:"Überfällig"};
+  const rows=[["Rechnungsnummer","Quartal","Bezüger","Liegenschaft","Betrag CHF","Status","Fällig am"],...list.map(x=>{const d=invoiceDueDate(x);return [x.invoiceNo,x.period,regName(x),properties.find(p=>p.id===x.propertyId)?.name||"",Number(x.total||0).toFixed(2),label[regStatusOf(x)],d?d.toLocaleDateString("de-CH"):""];})];
+  const csv="\uFEFF"+rows.map(r=>r.map(cell).join(";")).join("\r\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const a=document.createElement("a");a.href=url;a.download="Rechnungsregister.csv";document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+};
 function renderInvoiceRegisterList(invoices){
   const el=$("invoiceList");
   if(invoicesError){ el.innerHTML=`<div class="alert error">Rechnungsregister konnte nicht geladen werden: ${esc(invoicesError)}</div>`; return; }
@@ -1409,11 +1446,17 @@ function renderInvoiceRegisterList(invoices){
   const overdue=open.filter(x=>{const d=invoiceDueDate(x);return d&&d<today;});
   const sum=list=>list.reduce((n,x)=>n+Number(x.total||0),0);
   const overdueIds=new Set(overdue.map(x=>x.id));
-  const summary=`<div class="grid" style="margin:12px 0">
-    <div class="metric"><span>Offen</span><b>${chf(sum(open))}</b><small>${open.length} Rechnung(en)</small></div>
-    <div class="metric"><span>Bezahlt</span><b>${chf(sum(paid))}</b><small>${paid.length} Rechnung(en)</small></div>
-    <div class="metric"><span>Überfällig</span><b>${chf(sum(overdue))}</b><small>${overdue.length} Rechnung(en)</small></div>
-  </div>`;
+  const totalSum=sum(invoices), quote=totalSum>0?sum(paid)/totalSum*100:0;
+  const chartPeriods=[...new Set(invoices.map(x=>x.period))].sort((a,b)=>periodValue(a)-periodValue(b)).slice(-8);
+  const perStats=chartPeriods.map(per=>{const l=invoices.filter(x=>x.period===per);const p=sum(l.filter(x=>invoicePaymentState(x)==="paid"));const ov=sum(l.filter(x=>overdueIds.has(x.id)));return {per,paid:p,overdue:ov,open:sum(l)-p-ov,total:sum(l)};});
+  const maxTotal=Math.max(1,...perStats.map(s=>s.total));
+  const summary=`<div class="reg-metrics">
+    <div class="metric m1"><span>Total fakturiert</span><b>${chf(totalSum)}</b><small>${invoices.length} Rechnung(en)</small></div>
+    <div class="metric m2"><span>Offen</span><b>${chf(sum(open))}</b><small>${open.length} Rechnung(en)</small></div>
+    <div class="metric m3"><span>Bezahlt</span><b>${chf(sum(paid))}</b><small>${paid.length} Rechnung(en) · ${quote.toLocaleString("de-CH",{maximumFractionDigits:0})} % bezahlt</small></div>
+    <div class="metric m4"><span>Überfällig</span><b>${chf(sum(overdue))}</b><small>${overdue.length} Rechnung(en)</small></div>
+  </div>
+  <div class="regchart"><h4>Fakturiert pro Quartal</h4>${perStats.map(s=>`<div class="regrow"><b>${esc(s.per)}</b><div class="regbar" title="Total ${chf(s.total)}" style="width:${(s.total/maxTotal*100).toFixed(1)}%"><i style="width:${s.total?(s.paid/s.total*100).toFixed(2):0}%;background:#24715e"></i><i style="width:${s.total?(s.open/s.total*100).toFixed(2):0}%;background:#c9a765"></i><i style="width:${s.total?(s.overdue/s.total*100).toFixed(2):0}%;background:#a33c2c"></i></div><span style="text-align:right"><b>${chf(s.total)}</b></span></div>`).join("")}<div class="regleg"><span style="--c:#24715e">Bezahlt</span><span style="--c:#c9a765">Offen</span><span style="--c:#a33c2c">Überfällig</span></div></div>`;
   const overdueHtml=overdue.length?`<div class="card" style="margin:12px 0"><h3>Überfällige Rechnungen</h3><p class="small muted">Diese Rechnungen sind offen und ihr Zahlungsziel ist überschritten.</p><div class="table-wrap"><table><thead><tr><th>Rechnung</th><th>Bezüger</th><th>Fällig seit</th><th>Betrag</th><th></th></tr></thead><tbody>${overdue.map(x=>{const d=invoiceDueDate(x);return `<tr><td>${esc(x.invoiceNo)}</td><td>${esc(x.customerName||x.data?.customer?.name||"")}</td><td>${d.toLocaleDateString("de-CH")}</td><td><b>${chf(x.total)}</b></td><td><button class="btn alt" data-remind-invoice="${esc(x.id)}">Zahlungserinnerung</button></td></tr>`;}).join("")}</tbody></table></div></div>`:`<div class="alert ok" style="margin:12px 0">Keine überfälligen offenen Rechnungen.</div>`;
   const periods=[...new Set(invoices.map(x=>x.period))].sort((a,b)=>periodValue(b)-periodValue(a));
   el.innerHTML=summary+overdueHtml+periods.map(per=>{
@@ -1428,7 +1471,7 @@ function renderInvoiceRegisterList(invoices){
       `<div class="card" style="margin:12px 0"><h3>${esc(customerName)}</h3><div class="table-wrap"><table><thead><tr><th>Nr.</th><th>Liegenschaft</th><th>Betrag</th><th>Zahlungsstatus</th><th>Fällig</th><th>Aktionen</th></tr></thead><tbody>${customerInvoices.map(x=>{
         const isPaid=invoicePaymentState(x)==="paid", due=invoiceDueDate(x), late=!isPaid&&due&&due<today;
         const dueText=due?due.toLocaleDateString("de-CH"):"–";
-        return `<tr><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td><b style="color:${isPaid?"#18794e":late?"#b45309":"#8a5a00"}">${isPaid?"Bezahlt":"Offen"}${late?" · überfällig":""}</b></td><td>${dueText}</td><td style="white-space:nowrap"><button class="btn alt" data-payment-toggle="${esc(x.id)}">${isPaid?"Wieder öffnen":"Als bezahlt markieren"}</button> <button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`;
+        return `<tr${late?' class="late-row"':''}><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td><span class="pill ${isPaid?"paid":late?"late":"open"}">${isPaid?"Bezahlt":late?"Überfällig":"Offen"}</span></td><td>${dueText}</td><td style="white-space:nowrap"><button class="btn alt" data-payment-toggle="${esc(x.id)}">${isPaid?"Wieder öffnen":"Als bezahlt markieren"}</button> <button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`;
       }).join("")}</tbody></table></div></div>`
     ).join("");
     return `<div class="sec-title">${esc(per)}</div>${customerSections}<div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button><button class="btn danger" data-del-period="${esc(per)}">${regCustomer?"Angezeigte Rechnungen":"Quartal"} ${esc(per)} löschen</button></div>`;
