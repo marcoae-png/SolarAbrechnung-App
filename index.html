@@ -248,8 +248,8 @@ tfoot th{color:#24715e}
       <p id="smartmeApiMessage" class="small muted" aria-live="polite">Noch keine Smart-me-Verbindung geprüft.</p>
       <div id="smartmeDevices"></div>
     </div>
-    <!-- Manueller Excel-Import: Ausweichlösung, falls Smart-me für ein Quartal keine Zählerstände liefert. -->
-    <div>
+    <!-- Manueller Excel-Import bleibt intern erhalten, wird im Portal aber nicht mehr angezeigt. -->
+    <div style="display:none" aria-hidden="true">
     <div class="grid two"><div class="card"><h3>Smart-me-Excel importieren</h3><p class="muted small">Mehrere Bezügerdateien für dasselbe vollständige Kalenderquartal auswählen.</p><div class="drop"><b>Dateien auswählen</b><p class="muted small">Excel .xlsx – mehrere Dateien möglich</p><input id="excelFiles" type="file" accept=".xlsx,.xls" multiple></div><div class="toolbar"><button class="btn" id="inspectFilesBtn">Dateien prüfen</button><button class="btn alt" id="saveImportBtn" disabled>Import in Firebase speichern</button></div><div id="importMessage" class="small muted">Noch keine Dateien ausgewählt.</div></div>
     <div class="card"><h3>Import-Regeln</h3><ul class="small muted"><li>Bezüger/Zähler wird aus B2 erkannt.</li><li>Abrechnungszeitraum wird aus B3 gelesen.</li><li>Gesamtbezug wird in Spalte E bei «Import Total» bzw. «Bezug Total» gesucht.</li><li>Alle Dateien müssen dasselbe volle Kalenderquartal enthalten.</li><li>Jeder Zähler darf nur einmal vorkommen.</li></ul></div></div>
     <div class="card" style="margin-top:14px"><h3>Prüfergebnis</h3><div id="importPreview" class="empty">Nach der Dateiprüfung erscheint hier die Übersicht.</div></div>
@@ -310,7 +310,7 @@ tfoot th{color:#24715e}
 </main>
 
 <div id="propertyModal" class="modal hidden"><div class="card"><h2>Liegenschaft erfassen</h2><div class="field"><label>Name der Liegenschaft</label><input id="pName" placeholder="z. B. Mehrfamilienhaus Musterstrasse"></div><div class="grid two"><div class="field"><label>Strasse</label><input id="pStreet"></div><div class="field"><label>Hausnummer</label><input id="pHouse"></div><div class="field"><label>PLZ</label><input id="pPostal"></div><div class="field"><label>Ort</label><input id="pCity"></div></div><div class="field"><label>Land</label><input id="pCountry" value="CH"></div><div class="toolbar"><button class="btn" id="savePropertyBtn">Speichern</button><button class="btn alt" data-close="propertyModal">Abbrechen</button></div><div id="propertyError" class="small" style="color:var(--red)"></div></div></div>
-<div id="customerModal" class="modal hidden"><div class="card"><h2>Bezüger erfassen</h2><div class="field"><label>Liegenschaft</label><select id="cProperty"></select></div><div class="grid two"><div class="field"><label>Name / Wohnung</label><input id="cName" placeholder="Wohnung 1 / Familie Muster"></div><div class="field"><label>Smart-me-Zählernummer</label><input id="cMeter" inputmode="numeric" placeholder="123456"></div><div class="field"><label>E-Mail (optional)</label><input id="cEmail" type="email"></div><div class="field"><label>Strasse</label><input id="cStreet"></div><div class="field"><label>Hausnummer</label><input id="cHouse"></div><div class="field"><label>PLZ</label><input id="cPostal"></div><div class="field"><label>Ort</label><input id="cCity"></div></div><div class="toolbar"><button class="btn" id="saveCustomerBtn">Speichern</button><button class="btn alt" data-close="customerModal">Abbrechen</button></div><div id="customerError" class="small" style="color:var(--red)"></div></div></div>
+<div id="customerModal" class="modal hidden"><div class="card"><h2 id="customerModalTitle">Bezüger erfassen</h2><div class="field"><label>Liegenschaft</label><select id="cProperty"></select></div><div class="grid two"><div class="field"><label>Name / Wohnung</label><input id="cName" placeholder="Wohnung 1 / Familie Muster"></div><div class="field"><label>Smart-me-Zählernummer</label><input id="cMeter" inputmode="numeric" placeholder="123456"></div><div class="field"><label>E-Mail (optional)</label><input id="cEmail" type="email"></div><div class="field"><label>Strasse</label><input id="cStreet"></div><div class="field"><label>Hausnummer</label><input id="cHouse"></div><div class="field"><label>PLZ</label><input id="cPostal"></div><div class="field"><label>Ort</label><input id="cCity"></div></div><div class="toolbar"><button class="btn" id="saveCustomerBtn">Speichern</button><button class="btn alt" data-close="customerModal">Abbrechen</button></div><div id="customerError" class="small" style="color:var(--red)"></div></div></div>
 <div id="invoiceViewer" class="viewer hidden"><div class="bar"><b id="viewerTitle">Rechnungen</b><span style="flex:1"></span><button class="btn gold" id="pdfInvoicesBtn">Als PDF (A4) herunterladen</button><button class="btn alt" id="printInvoicesBtn">Drucken / als PDF speichern</button><button class="btn alt" id="closeViewerBtn">Schliessen</button></div><iframe id="invoiceFrame" title="Rechnungsvorschau"></iframe></div>
 <footer class="site"><div class="container"><div class="footer-grid">
  <div><a class="brand" href="https://marcoae-png.github.io/Solarabrechnung/" target="_blank" rel="noopener"><span class="brandmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"/></svg></span><span class="brandname">Solar<span>Abrechnung</span>.ch</span></a><p>Die praktische Lösung für den strukturierten Solarstrom-Abrechnungsprozess.</p></div>
@@ -618,7 +618,7 @@ async function autoImportSmartmeForPeriod(propertyId,period,customerId){
   for(const m of data.meters||[]){
     const c=targets.find(x=>String(x.meterId)===String(m.meter));
     if(m.startDate&&m.startDate!==range.start&&m.kwh!=null) notes.push(`${c?.name||m.meter} (Zähler ${m.meter}): Kein Zählerstand am ${isoToCh(range.start)} – Verbrauch ab ${isoToCh(m.startDate)} gerechnet`);
-    if(m.kwh==null||!Number.isFinite(Number(m.kwh))){problems.push(m.startReading==null?`Zähler ${m.meter}: Anfangsstand am ${isoToCh(range.start)} fehlt (Smart-me-Antwort: ${m.debug||"keine Diagnose – Worker-Patch deployt?"})`:`Zähler ${m.meter}: Endstand am ${isoToCh(range.endExcl)} fehlt (Anfangsstand ${fmtKwh(m.startReading)} vorhanden)`);continue;}
+    if(m.kwh==null||!Number.isFinite(Number(m.kwh))){problems.push(m.startReading==null?`Zähler ${m.meter}: Anfangsstand am ${isoToCh(range.start)} fehlt (Smart-me-Antwort: ${m.debug||"keine Diagnose – Worker mit Patch deployt?"})`:`Zähler ${m.meter}: Endstand am ${isoToCh(range.endExcl)} fehlt (Anfangsstand ${fmtKwh(m.startReading)} vorhanden)`);continue;}
     if(Number(m.kwh)<0){problems.push(`Zähler ${m.meter}: negativer Verbrauch (${m.kwh})`);continue;}
     rows.push({fileName:"Smart-me API",meterId:String(m.meter),customerId:c.id,customerName:c.name,propertyId,start:range.start,end:range.lastDay,period,kwh:Number(m.kwh),startReading:m.startReading,endReading:m.endReading});
     const prev=old.find(o=>String(o.meterId)===String(m.meter));
@@ -694,7 +694,7 @@ function renderAll() {
   refreshInvoicePeriod();
 
   $("propertyList").innerHTML=properties.length?`<div class="table-wrap"><table><thead><tr><th>Liegenschaft</th><th>Adresse</th><th>Bezüger</th><th></th></tr></thead><tbody>${properties.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc([p.street,p.house,p.postal,p.city].filter(Boolean).join(" "))}</td><td>${customers.filter(c=>c.propertyId===p.id).length}</td><td><button class="btn danger" data-del-property="${esc(p.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Liegenschaft erfasst.</div>';
-  $("customerList").innerHTML=customers.length?`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Liegenschaft</th><th>E-Mail</th><th></th></tr></thead><tbody>${customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.meterId)}</td><td>${esc(properties.find(p=>p.id===c.propertyId)?.name||"")}</td><td>${esc(c.email||"")}</td><td><button class="btn danger" data-del-customer="${esc(c.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Bezüger erfasst.</div>';
+  $("customerList").innerHTML=customers.length?`<div class="table-wrap"><table><thead><tr><th>Bezüger</th><th>Zähler</th><th>Liegenschaft</th><th>E-Mail</th><th></th></tr></thead><tbody>${customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.meterId)}</td><td>${esc(properties.find(p=>p.id===c.propertyId)?.name||"")}</td><td>${esc(c.email||"")}</td><td style="white-space:nowrap"><button class="btn alt" data-edit-customer="${esc(c.id)}">Bearbeiten</button> <button class="btn danger" data-del-customer="${esc(c.id)}">Löschen</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Noch keine Bezüger erfasst.</div>';
   renderInvoiceRegister();
   renderEaseeMappings();
   if($("tariffProperty").value) loadTariff($("tariffProperty").value).catch(()=>{});
@@ -742,8 +742,10 @@ $("newPropertyBtn").onclick=$("addPropertyBtn").onclick=()=>{
   ["pName","pStreet","pHouse","pPostal","pCity"].forEach(id=>$(id).value="");
   $("propertyError").textContent=""; openModal("propertyModal");
 };
+let editingCustomerId=null;
 $("addCustomerBtn").onclick=()=>{
   if(!properties.length){alert("Bitte zuerst eine Liegenschaft erfassen.");return;}
+  editingCustomerId=null; $("customerModalTitle").textContent="Bezüger erfassen";
   ["cName","cMeter","cEmail","cStreet","cHouse","cPostal","cCity"].forEach(id=>$(id).value="");
   $("customerError").textContent=""; openModal("customerModal");
 };
@@ -761,11 +763,27 @@ $("saveCustomerBtn").onclick=async()=>{
   try {
     const meter=$("cMeter").value.trim(),name=$("cName").value.trim(),propertyId=$("cProperty").value;
     if(!name||!meter||!propertyId) throw new Error("Name, Zählernummer und Liegenschaft sind Pflicht.");
-    if(customers.some(c=>String(c.meterId)===meter)) throw new Error("Diese Zählernummer ist bereits erfasst.");
-    await addDoc(collection(db,"customers"),{ownerUid:currentUser.uid,propertyId,name,meterId:meter,email:$("cEmail").value.trim(),street:$("cStreet").value.trim(),house:$("cHouse").value.trim(),postal:$("cPostal").value.trim(),city:$("cCity").value.trim(),createdAt:serverTimestamp()});
+    if(customers.some(c=>String(c.meterId)===meter&&c.id!==editingCustomerId)) throw new Error("Diese Zählernummer ist bereits erfasst.");
+    const fields={propertyId,name,meterId:meter,email:$("cEmail").value.trim(),street:$("cStreet").value.trim(),house:$("cHouse").value.trim(),postal:$("cPostal").value.trim(),city:$("cCity").value.trim()};
+    if(editingCustomerId){
+      await updateDoc(doc(db,"customers",editingCustomerId),{...fields,updatedAt:serverTimestamp()});
+    } else {
+      await addDoc(collection(db,"customers"),{ownerUid:currentUser.uid,...fields,createdAt:serverTimestamp()});
+    }
+    editingCustomerId=null;
     closeModal("customerModal"); await loadAll();
   } catch(e) {$("customerError").textContent=e.message;}
 };
+document.addEventListener("click",e=>{
+  const ec=e.target.closest("[data-edit-customer]"); if(!ec) return;
+  const c=customers.find(x=>x.id===ec.dataset.editCustomer); if(!c) return;
+  editingCustomerId=c.id;
+  $("customerModalTitle").textContent="Bezüger bearbeiten";
+  $("cProperty").value=c.propertyId||"";
+  $("cName").value=c.name||""; $("cMeter").value=c.meterId||""; $("cEmail").value=c.email||"";
+  $("cStreet").value=c.street||""; $("cHouse").value=c.house||""; $("cPostal").value=c.postal||""; $("cCity").value=c.city||"";
+  $("customerError").textContent=""; openModal("customerModal");
+});
 document.addEventListener("click",async e=>{
   const pay=e.target.closest("[data-payment-toggle]");
   if(pay){
