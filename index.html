@@ -303,7 +303,13 @@ tfoot th{color:#24715e}
       <input type="hidden" id="invoicePeriod">
       <button class="btn" id="createInvoiceBtn">Rechnungen erstellen</button><div id="invoiceMessage" class="alert" style="display:none"></div><div id="invoicePreview"></div>
     </div>
-    <div class="card" style="margin-top:15px"><h3>Rechnungsregister</h3><div id="invoiceList" class="empty">Noch keine definitiven Rechnungen vorhanden.</div></div>
+    <div class="card" style="margin-top:15px"><h3>Rechnungsregister</h3>
+      <div class="solar-toolbar" style="margin-top:6px">
+        <div class="field"><label for="invoiceFilterYear">Jahr</label><select id="invoiceFilterYear"><option value="">Alle Jahre</option></select></div>
+        <div class="field"><label for="invoiceFilterCustomer">Bezüger</label><select id="invoiceFilterCustomer"><option value="">Alle Bezüger</option></select></div>
+        <button class="btn alt" id="invoiceFilterReset" style="margin-bottom:12px">Filter zurücksetzen</button>
+      </div>
+      <div id="invoiceList" class="empty">Noch keine definitiven Rechnungen vorhanden.</div></div>
   </section>
   <section class="panel" id="panel-solar"><div class="card"><h3>Solar-Manager-Verbindung</h3><p class="muted small">Deine Zugangsdaten werden über den sicheren Cloudflare-Worker verschlüsselt gespeichert. Den API-Schlüssel nicht weitergeben.</p><div class="field"><label for="solarGatewayId">Gateway-ID</label><input id="solarGatewayId" placeholder="Gateway-ID eingeben"></div><div class="field"><label for="solarApiKey">Solar-Manager API-Schlüssel</label><input id="solarApiKey" type="password" placeholder="Persönlichen API-Schlüssel eingeben"></div><div class="toolbar"><button class="btn" id="saveSolarConnectionBtn">Verbindung speichern</button><button class="btn danger" id="deleteSolarConnectionBtn">Verbindung löschen</button></div><p id="solarConnectionMessage" class="small muted"></p></div></section>
 </div>
@@ -1374,7 +1380,26 @@ function invoiceDueDate(x){
   return Number.isNaN(d.getTime())?null:d;
 }
 function invoicePaymentState(x){ return x.paymentStatus==="paid"?"paid":"open"; }
+let regYear="", regCustomer="";
+const regName=x=>x.customerName||x.data?.customer?.name||"Ohne Bezügerangabe";
+const regKey=x=>x.customerId||("n:"+regName(x));
+const regKeep=x=>(!regYear||String(x.period||"").startsWith(regYear))&&(!regCustomer||regKey(x)===regCustomer);
 function renderInvoiceRegister(){
+  const years=[...new Set(invoices.map(x=>String(x.period||"").slice(0,4)).filter(Boolean))].sort().reverse();
+  const custs=new Map(); invoices.forEach(x=>custs.set(regKey(x),regName(x)));
+  if(regYear&&!years.includes(regYear)) regYear="";
+  if(regCustomer&&!custs.has(regCustomer)) regCustomer="";
+  $("invoiceFilterYear").innerHTML='<option value="">Alle Jahre</option>'+years.map(y=>`<option value="${esc(y)}">${esc(y)}</option>`).join("");
+  $("invoiceFilterCustomer").innerHTML='<option value="">Alle Bezüger</option>'+[...custs.entries()].sort((a,b)=>a[1].localeCompare(b[1],"de-CH")).map(([k,n])=>`<option value="${esc(k)}">${esc(n)}</option>`).join("");
+  $("invoiceFilterYear").value=regYear; $("invoiceFilterCustomer").value=regCustomer;
+  const list=invoices.filter(regKeep);
+  if(invoices.length&&!list.length&&!invoicesError){ $("invoiceList").innerHTML='<div class="empty">Keine Rechnungen für diese Filterauswahl.</div>'; return; }
+  renderInvoiceRegisterList(list);
+}
+$("invoiceFilterYear").onchange=()=>{regYear=$("invoiceFilterYear").value;renderInvoiceRegister();};
+$("invoiceFilterCustomer").onchange=()=>{regCustomer=$("invoiceFilterCustomer").value;renderInvoiceRegister();};
+$("invoiceFilterReset").onclick=()=>{regYear="";regCustomer="";renderInvoiceRegister();};
+function renderInvoiceRegisterList(invoices){
   const el=$("invoiceList");
   if(invoicesError){ el.innerHTML=`<div class="alert error">Rechnungsregister konnte nicht geladen werden: ${esc(invoicesError)}</div>`; return; }
   if(!invoices.length){ el.innerHTML='<div class="empty">Noch keine definitiven Rechnungen vorhanden.</div>'; return; }
@@ -1406,19 +1431,19 @@ function renderInvoiceRegister(){
         return `<tr><td><b>${esc(x.invoiceNo)}</b></td><td>${esc(properties.find(p=>p.id===x.propertyId)?.name||"")}</td><td>${chf(x.total)}</td><td><b style="color:${isPaid?"#18794e":late?"#b45309":"#8a5a00"}">${isPaid?"Bezahlt":"Offen"}${late?" · überfällig":""}</b></td><td>${dueText}</td><td style="white-space:nowrap"><button class="btn alt" data-payment-toggle="${esc(x.id)}">${isPaid?"Wieder öffnen":"Als bezahlt markieren"}</button> <button class="btn alt" data-open-invoice="${esc(x.id)}">Öffnen</button> <button class="btn alt" data-mail-invoice="${esc(x.id)}">E-Mail</button> <button class="btn danger" data-del-invoice="${esc(x.id)}">Löschen</button></td></tr>`;
       }).join("")}</tbody></table></div></div>`
     ).join("");
-    return `<div class="sec-title">${esc(per)}</div>${customerSections}<div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button><button class="btn danger" data-del-period="${esc(per)}">Quartal ${esc(per)} löschen</button></div>`;
+    return `<div class="sec-title">${esc(per)}</div>${customerSections}<div class="toolbar"><button class="btn alt" data-open-period="${esc(per)}">Alle ${list.length} Rechnungen ${esc(per)} drucken</button><button class="btn danger" data-del-period="${esc(per)}">${regCustomer?"Angezeigte Rechnungen":"Quartal"} ${esc(per)} löschen</button></div>`;
   }).join("");
 }
 document.addEventListener("click",async e=>{
   const o=e.target.closest("[data-open-invoice]");
   if(o){const x=invoices.find(i=>i.id===o.dataset.openInvoice);if(x?.data)showInvoices([x.data],"Rechnung "+x.invoiceNo);return;}
   const pr=e.target.closest("[data-open-period]");
-  if(pr){const list=invoices.filter(i=>i.period===pr.dataset.openPeriod&&i.data).sort((a,b)=>String(a.invoiceNo).localeCompare(String(b.invoiceNo)));if(list.length)showInvoices(list.map(i=>i.data),"Rechnungen "+pr.dataset.openPeriod);return;}
+  if(pr){const list=invoices.filter(i=>i.period===pr.dataset.openPeriod&&i.data&&regKeep(i)).sort((a,b)=>String(a.invoiceNo).localeCompare(String(b.invoiceNo)));if(list.length)showInvoices(list.map(i=>i.data),"Rechnungen "+pr.dataset.openPeriod);return;}
   const em=e.target.closest("[data-mail-invoice]");
   if(em){const x=invoices.find(i=>i.id===em.dataset.mailInvoice);if(x?.data)mailInvoice(x.data);return;}
   const dper=e.target.closest("[data-del-period]");
   if(dper){
-    const list=invoices.filter(i=>i.period===dper.dataset.delPeriod); if(!list.length) return;
+    const list=invoices.filter(i=>i.period===dper.dataset.delPeriod&&regKeep(i)); if(!list.length) return;
     if(!confirm("Alle "+list.length+" Rechnungen von "+dper.dataset.delPeriod+" wirklich aus dem Register löschen?")) return;
     try{for(const x of list) await deleteDoc(doc(db,"invoices",x.id));await loadAll();}catch(err){alert(err.message);}
     return;
