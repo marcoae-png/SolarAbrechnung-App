@@ -279,6 +279,7 @@ tfoot th{color:#24715e}
   <section class="panel" id="panel-invoices">
     <div class="card"><h3>Rechnungen erstellen</h3><p class="muted small">Liegenschaft und das neueste importierte Quartal werden automatisch erkannt. Die Solar-Manager-Daten werden beim Erstellen abgerufen.</p>
       <div class="field"><label for="invoiceProperty">Liegenschaft</label><select id="invoiceProperty"></select></div>
+      <div class="field"><label for="invoiceCustomer">Bezüger</label><select id="invoiceCustomer"><option value="">Alle Bezüger</option></select></div>
       <div class="field"><label for="invoicePeriod">Abrechnungsquartal</label><select id="invoicePeriod" aria-label="Abrechnungsquartal"><option value="">Quartal auswählen</option></select></div>
       <button class="btn" id="createInvoiceBtn">Rechnungen erstellen</button><div id="invoiceMessage" class="alert" style="display:none"></div><div id="invoicePreview"></div>
     </div>
@@ -290,7 +291,7 @@ tfoot th{color:#24715e}
 
 <div id="propertyModal" class="modal hidden"><div class="card"><h2>Liegenschaft erfassen</h2><div class="field"><label>Name der Liegenschaft</label><input id="pName" placeholder="z. B. Mehrfamilienhaus Musterstrasse"></div><div class="grid two"><div class="field"><label>Strasse</label><input id="pStreet"></div><div class="field"><label>Hausnummer</label><input id="pHouse"></div><div class="field"><label>PLZ</label><input id="pPostal"></div><div class="field"><label>Ort</label><input id="pCity"></div></div><div class="field"><label>Land</label><input id="pCountry" value="CH"></div><div class="toolbar"><button class="btn" id="savePropertyBtn">Speichern</button><button class="btn alt" data-close="propertyModal">Abbrechen</button></div><div id="propertyError" class="small" style="color:var(--red)"></div></div></div>
 <div id="customerModal" class="modal hidden"><div class="card"><h2>Bezüger erfassen</h2><div class="field"><label>Liegenschaft</label><select id="cProperty"></select></div><div class="grid two"><div class="field"><label>Name / Wohnung</label><input id="cName" placeholder="Wohnung 1 / Familie Muster"></div><div class="field"><label>Smart-me-Zählernummer</label><input id="cMeter" inputmode="numeric" placeholder="123456"></div><div class="field"><label>E-Mail (optional)</label><input id="cEmail" type="email"></div><div class="field"><label>Strasse</label><input id="cStreet"></div><div class="field"><label>Hausnummer</label><input id="cHouse"></div><div class="field"><label>PLZ</label><input id="cPostal"></div><div class="field"><label>Ort</label><input id="cCity"></div></div><div class="toolbar"><button class="btn" id="saveCustomerBtn">Speichern</button><button class="btn alt" data-close="customerModal">Abbrechen</button></div><div id="customerError" class="small" style="color:var(--red)"></div></div></div>
-<div id="invoiceViewer" class="viewer hidden"><div class="bar"><b id="viewerTitle">Rechnungen</b><span style="flex:1"></span><button class="btn gold" id="printInvoicesBtn">Drucken / als PDF speichern</button><button class="btn alt" id="closeViewerBtn">Schliessen</button></div><iframe id="invoiceFrame" title="Rechnungsvorschau"></iframe></div>
+<div id="invoiceViewer" class="viewer hidden"><div class="bar"><b id="viewerTitle">Rechnungen</b><span style="flex:1"></span><button class="btn gold" id="pdfInvoicesBtn">Als PDF (A4) herunterladen</button><button class="btn alt" id="printInvoicesBtn">Drucken / als PDF speichern</button><button class="btn alt" id="closeViewerBtn">Schliessen</button></div><iframe id="invoiceFrame" title="Rechnungsvorschau"></iframe></div>
 <footer class="site"><div class="container"><div class="footer-grid">
  <div><a class="brand" href="https://marcoae-png.github.io/Solarabrechnung/" target="_blank" rel="noopener"><span class="brandmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"/></svg></span><span class="brandname">Solar<span>Abrechnung</span>.ch</span></a><p>Die praktische Lösung für den strukturierten Solarstrom-Abrechnungsprozess.</p></div>
  <div><h4>Navigation</h4><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#vorteile" target="_blank" rel="noopener">Für wen?</a><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#funktionen" target="_blank" rel="noopener">Funktionen</a><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#ablauf" target="_blank" rel="noopener">So funktioniert's</a><a class="fl" href="https://marcoae-png.github.io/Solarabrechnung/#preise" target="_blank" rel="noopener">Preise</a></div>
@@ -516,6 +517,12 @@ function periodValue(period) {
   const d=String(period||"").match(/(\d{4})-(\d{2})/);
   return d ? Number(d[1])*10+Math.ceil(Number(d[2])/3) : 0;
 }
+function refreshInvoiceCustomers() {
+  const propertyId=$("invoiceProperty").value, select=$("invoiceCustomer"), previous=select.value;
+  const list=customers.filter(c=>c.propertyId===propertyId).sort((a,b)=>String(a.name).localeCompare(String(b.name),"de"));
+  select.innerHTML='<option value="">Alle Bezüger</option>'+list.map(c=>`<option value="${esc(c.id)}">${esc(c.name)} · Zähler ${esc(c.meterId)}</option>`).join("");
+  if(list.some(c=>c.id===previous)) select.value=previous;
+}
 function refreshInvoicePeriod() {
   const propertyId=$("invoiceProperty").value;
   const select=$("invoicePeriod");
@@ -541,7 +548,8 @@ function renderAll() {
     $("tariffProperty").value=properties[0].id;
     $("cProperty").value=properties[0].id;
   }
-  $("invoiceProperty").onchange=refreshInvoicePeriod;
+  $("invoiceProperty").onchange=()=>{refreshInvoiceCustomers();refreshInvoicePeriod();};
+  refreshInvoiceCustomers();
   $("solarDashProperty").onchange=()=>{populateSolarDashboard();restoreSolarDashboard();};
   populateSolarDashboard();
   restoreSolarDashboard();
@@ -970,7 +978,7 @@ function buildInvoices(propertyId,period,rows,tariff,fig){
   const year=Number(period.slice(0,4)), q=Number(period.slice(-1)), m0=(q-1)*3;
   const periodStart=iso(new Date(Date.UTC(year,m0,1))), periodEnd=iso(new Date(Date.UTC(year,m0+3,0)));
   const today=new Date(), due=new Date(today.getTime()+(Number(tariff.payDays)||30)*86400000);
-  const existing=invoices.filter(x=>x.period===period).length;
+  const existing=Math.max(0,...invoices.filter(x=>x.period===period).map(x=>Number(String(x.invoiceNo||"").split("-").pop())||0),invoices.filter(x=>x.period===period).length);
   return rows.map((r,i)=>{
     const c=customers.find(x=>x.propertyId===propertyId&&String(x.meterId)===String(r.meterId))||{};
     // Smart-me- und Easee-Mengen getrennt führen, damit der Autoverbrauch
@@ -1158,13 +1166,39 @@ function invoicePage(inv){
 function invoicesDocument(list){
   return `<!doctype html><html lang="de-CH"><head><meta charset="utf-8"><title>Rechnungen</title><style>${INVOICE_CSS}</style></head><body>${list.map(invoicePage).join("")}</body></html>`;
 }
+let currentViewerList=[];
 function showInvoices(list,title){
+  currentViewerList=list;
   try{ $("invoiceFrame").srcdoc=invoicesDocument(list); }catch(e){ alert(e.message); return; }
   $("viewerTitle").textContent=title||"Rechnungen";
   $("invoiceViewer").classList.remove("hidden");
 }
 $("closeViewerBtn").onclick=()=>$("invoiceViewer").classList.add("hidden");
 $("printInvoicesBtn").onclick=()=>{const f=$("invoiceFrame").contentWindow;f.focus();f.print();};
+$("pdfInvoicesBtn").onclick=async()=>{
+  const btn=$("pdfInvoicesBtn"), label=btn.textContent;
+  try{
+    if(!window.html2canvas||!window.jspdf) throw new Error("PDF-Bibliotheken konnten nicht geladen werden. Bitte Seite neu laden.");
+    if(!currentViewerList.length) return;
+    btn.disabled=true;
+    const pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4"});
+    for(let i=0;i<currentViewerList.length;i++){
+      btn.textContent=`PDF ${i+1} / ${currentViewerList.length} …`;
+      const fr=document.createElement("iframe");
+      fr.style.cssText="position:fixed;left:-10000px;top:0;width:900px;height:1250px;border:0";
+      document.body.appendChild(fr);
+      try{
+        await new Promise(res=>{fr.onload=res;fr.srcdoc=invoicesDocument([currentViewerList[i]]);});
+        try{await fr.contentDocument.fonts.ready;}catch(_){}
+        const canvas=await html2canvas(fr.contentDocument.querySelector(".page"),{scale:2,backgroundColor:"#ffffff",useCORS:true});
+        if(i>0) pdf.addPage("a4");
+        pdf.addImage(canvas.toDataURL("image/jpeg",0.92),"JPEG",0,0,210,297);
+      } finally { fr.remove(); }
+    }
+    pdf.save(($("viewerTitle").textContent||"Rechnungen").replace(/[^\w\-äöüÄÖÜ]+/g,"_")+".pdf");
+  }catch(err){alert("PDF konnte nicht erstellt werden: "+err.message);}
+  finally{btn.disabled=false;btn.textContent=label;}
+};
 
 /* ---- Rechnungsregister ---- */
 function invoiceDueDate(x){
@@ -1346,7 +1380,13 @@ $("createInvoiceBtn").onclick=async()=>{
         combined.set(id,target);
       }
     }
-    const invoiceRows=[...combined.values()];
+    const selectedCustomerId=$("invoiceCustomer").value;
+    const selectedCustomer=selectedCustomerId?customers.find(c=>c.id===selectedCustomerId):null;
+    let invoiceRows=[...combined.values()];
+    if(selectedCustomer){
+      invoiceRows=invoiceRows.filter(r=>meterKey(r.meterId)===meterKey(selectedCustomer.meterId));
+      if(!invoiceRows.length) throw new Error("Für "+selectedCustomer.name+" (Zähler "+selectedCustomer.meterId+") liegen im Quartal "+period+" keine Messdaten vor.");
+    }
     const missing=invoiceRows.filter(row=>!customers.some(c=>c.propertyId===propertyId&&String(c.meterId)===String(row.meterId)));
     if(missing.length) throw new Error("Für Zähler "+missing[0].meterId+" wurde kein Bezüger gefunden.");
     msg("Solar-Manager-Daten werden abgerufen …");
@@ -1385,7 +1425,8 @@ $("createInvoiceBtn").onclick=async()=>{
     $("draftViewBtn").onclick=()=>showInvoices(draftInvoices,"Rechnungen "+period+" (Entwurf)");
     $("draftSaveBtn").onclick=async()=>{
       try{
-        if(invoices.some(x=>x.propertyId===draftMeta.propertyId&&x.period===draftMeta.period)) throw new Error("Für dieses Quartal sind bereits Rechnungen gespeichert. Bitte diese zuerst im Register löschen.");
+        const dup=draftInvoices.filter(inv=>invoices.some(x=>x.propertyId===draftMeta.propertyId&&x.period===draftMeta.period&&(x.customerId?x.customerId===inv.customerId:x.invoiceNo===inv.invoiceNo)));
+        if(dup.length) throw new Error("Für "+dup.map(d=>d.customer.name).join(", ")+" ist in diesem Quartal bereits eine Rechnung gespeichert. Bitte diese zuerst im Register löschen.");
         for(const inv of draftInvoices) await addDoc(collection(db,"invoices"),{ownerUid:currentUser.uid,propertyId:draftMeta.propertyId,period:draftMeta.period,invoiceNo:inv.invoiceNo,customerId:inv.customerId,customerName:inv.customer.name,total:inv.total,data:inv,status:"final",createdAt:serverTimestamp()});
         msg(draftInvoices.length+" Rechnung(en) im Register gespeichert.","ok");
         $("draftSaveBtn").disabled=true; await loadAll();
