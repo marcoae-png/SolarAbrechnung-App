@@ -639,13 +639,13 @@ function refreshInvoicePeriod() {
   const propertyId=$("invoiceProperty").value;
   const select=$("invoicePeriod");
   const previous=select.value;
-  const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean),...(smartmeConnected?completedQuarters():[]))];
+  const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean),...completedQuarters())];
   periods.sort((a,b)=>periodValue(b)-periodValue(a));
   select.innerHTML='<option value="">Quartal auswählen</option>'+periods.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
   if(periods.includes(previous)) select.value=previous;
   else if(periods.length) select.value=periods[0];
   select.disabled=periods.length===0;
-  select.title=periods.length?"Alle Quartale mit importierten Messdaten auswählen":"Für diese Liegenschaft sind noch keine Quartalsdaten importiert";
+  select.title="Alle abgeschlossenen Quartale seit "+FIRST_BILLING_YEAR;
 }
 function renderAll() {
   $("mProperties").textContent=properties.length;
@@ -1494,7 +1494,7 @@ $("createInvoiceBtn").onclick=async()=>{
       getDocs(query(collection(db,"imports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period))),
       getDocs(query(collection(db,"easeeImports"),where("ownerUid","==",currentUser.uid),where("propertyId","==",propertyId),where("period","==",period)))
     ]);
-    if(snap.empty&&easeeSnap.empty) throw new Error("Keine Messdaten für dieses Quartal gefunden.");
+    if(snap.empty&&easeeSnap.empty) throw new Error("Keine Messdaten für dieses Quartal gefunden."+(smartmeConnected?"":" Die Smart-me-Verbindung ist nicht aktiv – bitte im Tab «Smart-me» prüfen oder neu speichern."));
     const tariffSnap=await getDoc(doc(db,"tariffs",propertyId));
     if(!tariffSnap.exists()) throw new Error("Bitte zuerst die Tarife speichern.");
     const tariff=tariffSnap.data();
