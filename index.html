@@ -235,6 +235,19 @@ tfoot th{color:#24715e}
   <section class="panel" id="panel-properties"><div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>Meine Liegenschaften</h3><p class="muted small">Jede Liegenschaft wird separat verwaltet und abgerechnet.</p></div><button class="btn" id="addPropertyBtn">+ Hinzufügen</button></div><div id="propertyList" class="empty">Noch keine Liegenschaft erfasst.</div></div></section>
   <section class="panel" id="panel-customers"><div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>Bezüger & Smart-me-Zähler</h3><p class="muted small">Ordne jeden Zähler einem Bezüger und einer Liegenschaft zu.</p></div><button class="btn" id="addCustomerBtn">+ Bezüger hinzufügen</button></div><div id="customerList" class="empty">Noch keine Bezüger erfasst.</div></div></section>
   <section class="panel" id="panel-import">
+    <div class="card" style="margin-bottom:14px">
+      <h3>Direkte Smart-me-Verbindung</h3>
+      <p class="muted small">Mit der Verbindung holt das Portal die Quartalswerte beim Erstellen der Rechnung selbst aus der Smart-me-Cloud. Der Excel-Import ist dann nicht mehr nötig. Zugangsdaten werden verschlüsselt im Worker gespeichert. Am besten einen API-Key mit reinen Leserechten verwenden (Smart-me-Portal → API → API Keys).</p>
+      <div class="field"><label for="smartmeApiKey">API-Key</label><div class="pwwrap"><input id="smartmeApiKey" type="password" autocomplete="off" placeholder="API-Key aus dem Smart-me-Portal"><button type="button" class="pwtoggle" data-pw-toggle="smartmeApiKey" aria-label="Anzeigen" title="Anzeigen"></button></div></div>
+      <p class="muted small" style="margin:0">Oder statt API-Key Benutzername und Passwort:</p>
+      <div class="grid two">
+        <div class="field"><label for="smartmeUser">Smart-me-Benutzername</label><input id="smartmeUser" autocomplete="off"></div>
+        <div class="field"><label for="smartmePass">Smart-me-Passwort</label><div class="pwwrap"><input id="smartmePass" type="password" autocomplete="new-password"><button type="button" class="pwtoggle" data-pw-toggle="smartmePass" aria-label="Anzeigen" title="Anzeigen"></button></div></div>
+      </div>
+      <div class="toolbar"><button class="btn" id="smartmeSaveBtn">Verbindung speichern</button><button class="btn alt" id="smartmeCheckBtn">Zähler anzeigen</button><button class="btn danger" id="smartmeDeleteBtn">Verbindung trennen</button></div>
+      <p id="smartmeApiMessage" class="small muted" aria-live="polite">Noch keine Smart-me-Verbindung geprüft.</p>
+      <div id="smartmeDevices"></div>
+    </div>
     <div class="grid two"><div class="card"><h3>Smart-me-Excel importieren</h3><p class="muted small">Mehrere Bezügerdateien für dasselbe vollständige Kalenderquartal auswählen.</p><div class="drop"><b>Dateien auswählen</b><p class="muted small">Excel .xlsx – mehrere Dateien möglich</p><input id="excelFiles" type="file" accept=".xlsx,.xls" multiple></div><div class="toolbar"><button class="btn" id="inspectFilesBtn">Dateien prüfen</button><button class="btn alt" id="saveImportBtn" disabled>Import in Firebase speichern</button></div><div id="importMessage" class="small muted">Noch keine Dateien ausgewählt.</div></div>
     <div class="card"><h3>Import-Regeln</h3><ul class="small muted"><li>Bezüger/Zähler wird aus B2 erkannt.</li><li>Abrechnungszeitraum wird aus B3 gelesen.</li><li>Gesamtbezug wird in Spalte E bei «Import Total» bzw. «Bezug Total» gesucht.</li><li>Alle Dateien müssen dasselbe volle Kalenderquartal enthalten.</li><li>Jeder Zähler darf nur einmal vorkommen.</li></ul></div></div>
     <div class="card" style="margin-top:14px"><h3>Prüfergebnis</h3><div id="importPreview" class="empty">Nach der Dateiprüfung erscheint hier die Übersicht.</div></div>
@@ -336,6 +349,7 @@ document.querySelectorAll("[data-pw-toggle]").forEach(b=>{
   
 let currentUser = null, properties = [], customers = [], imports = [], pendingImport = null;
 let easeeImports = [], easeeMappings = {};
+let smartmeConnected = false;
 let invoices = [], invoicesError = "", draftInvoices = [], draftMeta = null;
 let parsedFiles = [];
 
@@ -367,6 +381,14 @@ async function solarDataRequest(path) {
   });
   const data = await response.json().catch(()=>({}));
   if (!response.ok) throw new Error(data.error || "Solar-Manager-Daten konnten nicht geladen werden.");
+  return data;
+}
+async function smartmeApiRequest(path, method="GET", body=null) {
+  if (!currentUser) throw new Error("Bitte zuerst anmelden.");
+  const token=await currentUser.getIdToken();
+  const response=await fetch(SOLAR_API_BASE+path,{method,headers:{"Authorization":"Bearer "+token,"Accept":"application/json","Content-Type":"application/json"},...(body?{body:JSON.stringify(body)}:{})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok) throw new Error(data.error||"Smart-me-Anfrage fehlgeschlagen.");
   return data;
 }
 async function easeeApiRequest(path, method="GET", body=null) {
@@ -510,12 +532,98 @@ async function loadAll() {
   catch(e){ invoices=[]; invoicesError=e.message; }
   renderAll();
   loadEaseeConnection().catch(()=>{});
+  loadSmartmeConnection().catch(()=>{});
 }
 function periodValue(period) {
   const m=String(period||"").match(/(\d{4}).*?Q([1-4])/i);
   if(m) return Number(m[1])*10+Number(m[2]);
   const d=String(period||"").match(/(\d{4})-(\d{2})/);
   return d ? Number(d[1])*10+Math.ceil(Number(d[2])/3) : 0;
+}
+function completedQuarters(n=8){
+  const out=[], now=new Date(); let y=now.getFullYear(), q=Math.floor(now.getMonth()/3)+1;
+  for(let i=0;i<n;i++){q--;if(q<1){q=4;y--;}out.push(`${y} Q${q}`);}
+  return out;
+}
+function quarterRange(period){
+  const m=String(period||"").match(/^(\d{4}) Q([1-4])$/i);
+  if(!m) throw new Error("Der Abrechnungszeitraum ist ungültig.");
+  const y=Number(m[1]), q=Number(m[2]), pad=n=>String(n).padStart(2,"0");
+  const start=`${y}-${pad((q-1)*3+1)}-01`;
+  const endExcl=q===4?`${y+1}-01-01`:`${y}-${pad(q*3+1)}-01`;
+  return {start,endExcl,lastDay:quarterDates(period).to.slice(0,10)};
+}
+async function loadSmartmeConnection(){
+  const data=await smartmeApiRequest("/api/smartme-connection");
+  smartmeConnected=!!data.connected;
+  $("smartmeApiMessage").className=smartmeConnected?"small":"small muted";
+  $("smartmeApiMessage").textContent=smartmeConnected?"Smart-me-Konto ist verbunden. Die Quartalswerte werden beim Erstellen der Rechnung automatisch abgerufen.":"Noch keine Smart-me-Verbindung eingerichtet.";
+  refreshInvoicePeriod();
+  return data;
+}
+function smartmeMsg(t,cls="muted"){$("smartmeApiMessage").className="small "+(cls==="error"?"alert error":cls);$("smartmeApiMessage").textContent=t;}
+$("smartmeSaveBtn").onclick=async()=>{
+  try{
+    const apiKey=$("smartmeApiKey").value.trim(), userName=$("smartmeUser").value.trim(), password=$("smartmePass").value;
+    if(!apiKey&&!(userName&&password)) throw new Error("Bitte API-Key oder Benutzername und Passwort eingeben.");
+    $("smartmeSaveBtn").disabled=true; smartmeMsg("Smart-me-Zugang wird geprüft …");
+    const data=await smartmeApiRequest("/api/smartme-connection","POST",apiKey?{apiKey}:{userName,password});
+    $("smartmeApiKey").value=""; $("smartmePass").value="";
+    smartmeConnected=true; refreshInvoicePeriod();
+    smartmeMsg(`Smart-me verbunden · ${data.deviceCount} Gerät(e) gefunden. Zugang verschlüsselt gespeichert.`,"ok");
+  }catch(e){smartmeMsg(e.message,"error");}
+  finally{$("smartmeSaveBtn").disabled=false;}
+};
+$("smartmeDeleteBtn").onclick=async()=>{
+  if(!confirm("Smart-me-Verbindung wirklich trennen und gespeicherte Zugangsdaten löschen?")) return;
+  try{await smartmeApiRequest("/api/smartme-connection","DELETE");smartmeConnected=false;$("smartmeDevices").innerHTML="";refreshInvoicePeriod();smartmeMsg("Smart-me-Verbindung getrennt. Bereits importierte Quartalswerte bleiben erhalten.","ok");}
+  catch(e){smartmeMsg(e.message,"error");}
+};
+$("smartmeCheckBtn").onclick=async()=>{
+  try{
+    smartmeMsg("Smart-me-Zähler werden geladen …");
+    const data=await smartmeApiRequest("/api/smartme-devices");
+    const rows=(data.devices||[]).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),"de"));
+    $("smartmeDevices").innerHTML=rows.length?`<div class="table-wrap"><table><thead><tr><th>Name</th><th>Zählernummer</th><th>Zählerstand</th><th>Bezüger im Portal</th><th></th></tr></thead><tbody>${rows.map(d=>{const c=customers.find(x=>String(x.meterId)===String(d.serial));return `<tr><td>${esc(d.name)}</td><td>${esc(d.serial)}</td><td>${d.reading==null?"–":fmtKwh(d.reading)}</td><td>${c?`<b>${esc(c.name)}</b>`:'<span class="muted">nicht zugeordnet</span>'}</td><td><button class="btn alt" data-smartme-raw="${esc(d.id)}">Rohdaten</button></td></tr>`;}).join("")}</tbody></table></div><pre id="smartmeRaw" class="small" style="white-space:pre-wrap;max-height:260px;overflow:auto;margin:10px 0 0"></pre>`:'<div class="empty">Keine Geräte gefunden.</div>';
+    smartmeMsg(`${rows.length} Smart-me-Gerät(e). Die Zählernummer muss mit der Zählernummer des Bezügers übereinstimmen.`,"ok");
+  }catch(e){smartmeMsg(e.message,"error");}
+};
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-smartme-raw]"); if(!b) return;
+  try{
+    const r=quarterRange(completedQuarters(1)[0]);
+    const data=await smartmeApiRequest("/api/smartme-raw?"+new URLSearchParams({deviceId:b.dataset.smartmeRaw,date:r.start}));
+    $("smartmeRaw").textContent="Zählerstand am "+r.start+":\n"+JSON.stringify(data,null,2);
+  }catch(err){$("smartmeRaw").textContent=err.message;}
+});
+// Holt Quartalswerte aus Smart-me und speichert sie wie einen Import.
+async function autoImportSmartmeForPeriod(propertyId,period,customerId){
+  if(!smartmeConnected) return {connected:false};
+  const range=quarterRange(period);
+  if(range.endExcl>new Date().toISOString().slice(0,10)) return {connected:true,skipped:"Quartal noch nicht abgeschlossen – vorhandene Importe werden verwendet."};
+  const targets=customers.filter(c=>c.propertyId===propertyId&&(!customerId||c.id===customerId));
+  if(!targets.length) return {connected:true,skipped:"Keine Bezüger vorhanden."};
+  const data=await smartmeApiRequest("/api/smartme-quarter?"+new URLSearchParams({from:range.start,to:range.endExcl,meters:targets.map(c=>String(c.meterId)).join(",")}));
+  const old=latestRows(imports.filter(x=>x.propertyId===propertyId&&x.period===period));
+  const rows=[], problems=[], diffs=[];
+  for(const m of data.meters||[]){
+    const c=targets.find(x=>String(x.meterId)===String(m.meter));
+    if(m.kwh==null||!Number.isFinite(Number(m.kwh))){problems.push(`Zähler ${m.meter}: Zählerstand für ${m.startReading==null?range.start:range.endExcl} fehlt`);continue;}
+    if(Number(m.kwh)<0){problems.push(`Zähler ${m.meter}: negativer Verbrauch (${m.kwh})`);continue;}
+    rows.push({fileName:"Smart-me API",meterId:String(m.meter),customerId:c.id,customerName:c.name,propertyId,start:range.start,end:range.lastDay,period,kwh:Number(m.kwh),startReading:m.startReading,endReading:m.endReading});
+    const prev=old.find(o=>String(o.meterId)===String(m.meter));
+    if(prev&&Math.abs(Number(prev.kwh)-Number(m.kwh))>0.5) diffs.push(`${c.name}: bisher ${fmtKwh(prev.kwh)}, Smart-me API ${fmtKwh(m.kwh)}`);
+  }
+  const missing=(data.missing||[]).map(String);
+  if(missing.length) problems.push("Nicht in Smart-me gefunden: Zähler "+missing.join(", "));
+  const uncovered=problems.filter(x=>!x.startsWith("Nicht in Smart-me")||true);
+  if(problems.length&&!rows.length&&!old.length) throw new Error("Smart-me-Abruf unvollständig: "+problems.join("; "));
+  if(rows.length){
+    const rec={ownerUid:currentUser.uid,propertyId,period,rows,smartmeTotalKwh:rows.reduce((a,x)=>a+x.kwh,0),status:"smartme-api",source:"smartme-api",createdAt:serverTimestamp()};
+    await addDoc(collection(db,"imports"),rec);
+    imports.push({...rec,id:"api-"+Date.now(),createdAt:{toMillis:()=>Date.now()}});
+  }
+  return {connected:true,imported:rows.length,problems:uncovered,diffs};
 }
 function refreshInvoiceCustomers() {
   const propertyId=$("invoiceProperty").value, select=$("invoiceCustomer"), previous=select.value;
@@ -527,7 +635,7 @@ function refreshInvoicePeriod() {
   const propertyId=$("invoiceProperty").value;
   const select=$("invoicePeriod");
   const previous=select.value;
-  const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean))];
+  const periods=[...new Set([...imports,...easeeImports].filter(x=>x.propertyId===propertyId).map(x=>x.period).filter(Boolean),...(smartmeConnected?completedQuarters(8):[]))];
   periods.sort((a,b)=>periodValue(b)-periodValue(a));
   select.innerHTML='<option value="">Quartal auswählen</option>'+periods.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
   if(periods.includes(previous)) select.value=previous;
@@ -541,10 +649,11 @@ function renderAll() {
   $("mImports").textContent=new Set([...imports,...easeeImports].map(x=>x.period).filter(Boolean)).size;
   $("welcomeCard").classList.toggle("hidden",properties.length>0);
   $("setupHint").textContent=properties.length?"Deine Liegenschaften sind eingerichtet. Verwalte jetzt die Bezüger und importiere die Quartalsdaten.":"Noch keine Liegenschaft vorhanden. Beginne mit «Liegenschaft hinzufügen».";
+  const prevInvoiceProperty=$("invoiceProperty").value;
   const propertyOptions=properties.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("") || '<option value="">Keine Liegenschaft vorhanden</option>';
   ["invoiceProperty","tariffProperty","cProperty","solarDashProperty"].forEach(id=>$(id).innerHTML=propertyOptions);
   if(properties.length) {
-    $("invoiceProperty").value=properties[0].id;
+    $("invoiceProperty").value=properties.some(p=>p.id===prevInvoiceProperty)?prevInvoiceProperty:properties[0].id;
     $("tariffProperty").value=properties[0].id;
     $("cProperty").value=properties[0].id;
   }
@@ -1353,6 +1462,16 @@ $("createInvoiceBtn").onclick=async()=>{
   try {
     const propertyId=$("invoiceProperty").value, period=$("invoicePeriod").value;
     if(!propertyId||!period) throw new Error("Für diese Liegenschaft wurden noch keine Messdaten importiert.");
+    let smartmeNote="";
+    if(smartmeConnected){
+      msg("Smart-me-Quartalswerte werden abgerufen …");
+      try{
+        const sm=await autoImportSmartmeForPeriod(propertyId,period,$("invoiceCustomer").value);
+        if(sm.skipped) smartmeNote=sm.skipped+" ";
+        else if(sm.imported) smartmeNote=`Smart-me API: ${sm.imported} Zähler automatisch abgerufen. `+(sm.problems.length?"Achtung: "+sm.problems.join("; ")+". ":"")+(sm.diffs.length?"Abweichung zu bisherigen Importwerten: "+sm.diffs.join("; ")+". ":"");
+        else if(sm.problems?.length) smartmeNote="Achtung: "+sm.problems.join("; ")+". ";
+      }catch(e){ throw new Error("Smart-me-Abruf fehlgeschlagen: "+e.message); }
+    }
     msg("Easee-Verbrauch wird geprüft …");
     let easeeAutoResult={connected:false,imported:false};
     try { easeeAutoResult = await autoImportEaseeForPeriod(propertyId,period); }
@@ -1398,7 +1517,7 @@ $("createInvoiceBtn").onclick=async()=>{
     const dev=Math.abs(totalSmartme-fig.consumption)/fig.consumption*100;
     draftInvoices=list; draftMeta={propertyId,period};
     const devCombined=Math.abs(totalCombined-fig.consumption)/fig.consumption*100;
-    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me ${fmtKwh(totalSmartme)} + Easee ${fmtKwh(totalEasee)} = ${fmtKwh(totalCombined)}. ${easeeAutoResult.imported?"Easee wurde automatisch aktualisiert. ":(easeeAutoResult.noUsage?"Kein Easee-Verbrauch für diese Liegenschaft/Periode – Easee übersprungen. ":(easeeAutoResult.connected?"Kein neuer Easee-Import (bestehende Daten werden verwendet). ":"Keine Easee-Verbindung – Easee übersprungen. "))}Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(devCombined>5?` Achtung: Die Summen weichen um ${fmtPct(devCombined)} ab – bitte vor dem Versand prüfen.`:""),devCombined>5?"":"ok");
+    msg(`${list.length} Rechnung(en) für ${period} berechnet. Smart-me ${fmtKwh(totalSmartme)} + Easee ${fmtKwh(totalEasee)} = ${fmtKwh(totalCombined)}. ${easeeAutoResult.imported?"Easee wurde automatisch aktualisiert. ":(easeeAutoResult.noUsage?"Kein Easee-Verbrauch für diese Liegenschaft/Periode – Easee übersprungen. ":(easeeAutoResult.connected?"Kein neuer Easee-Import (bestehende Daten werden verwendet). ":"Keine Easee-Verbindung – Easee übersprungen. "))}${smartmeNote}Solar-Manager-Verbrauch ${fmtKwh(fig.consumption)}.`+(devCombined>5?` Achtung: Die Summen weichen um ${fmtPct(devCombined)} ab – bitte vor dem Versand prüfen.`:""),devCombined>5?"":"ok");
     const sum=list.reduce((s,x)=>s+x.total,0);
     // Zusätzlicher Abrechnungscheck: Hinweise anzeigen, ohne bestehende Berechnungen zu verändern.
     const audit=list.map(inv=>{
